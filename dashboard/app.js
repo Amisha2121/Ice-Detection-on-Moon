@@ -132,21 +132,23 @@ async function initMap() {
   // ── Global context basemap (south polar region) ─────────────────────────
   if (STATE.meta.global_basemap) {
     const gb = STATE.meta.global_basemap;
-    // Use a more reasonable context area (±300km instead of full ±3000km)
-    // This shows Shackleton crater region rather than entire south pole
-    const contextRadius = 300000; // 300 km in meters
-    const contextBounds = [[-contextRadius, -contextRadius], [contextRadius, contextRadius]];
+    const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
     
-    // Add global context layer with higher opacity and brightness filter
-    const globalLayer = L.imageOverlay(CFG.overlayDir + 'global_basemap.png', contextBounds, {
-      opacity: 0.7,
+    // Add global context layer with proper bounds from meta.json
+    // Apply brightness/contrast to make lunar features more visible
+    const globalLayer = L.imageOverlay(CFG.overlayDir + 'global_basemap.png', globalBounds, {
+      opacity: 0.6,
       interactive: false,
       zIndex: 0,
       className: 'global-context-layer'
     });
-    globalLayer.getElement()?.setAttribute('style', 
-      'filter: brightness(1.3) contrast(1.2);');
     globalLayer.addTo(STATE.map);
+    
+    // Apply CSS filter for better visibility (needs to wait for image to load)
+    globalLayer.on('load', function() {
+      const img = this.getElement();
+      if (img) img.style.filter = 'brightness(1.4) contrast(1.3)';
+    });
     
     // Draw a red rectangle showing the AOI tile location within the context
     const aoiRect = L.rectangle(shkImgBounds, {
@@ -163,9 +165,18 @@ async function initMap() {
       className: 'dark-tooltip'
     });
     
-    // Set initial view and bounds to the context area (not full global)
-    STATE.map.fitBounds(contextBounds);
-    STATE.map.setMaxBounds(contextBounds);
+    // Start with a reasonable view showing the AOI in context
+    // Zoom to show ~200km around the AOI (compromise between full global and just AOI)
+    const centerLat = (shkImgBounds[0][0] + shkImgBounds[1][0]) / 2;
+    const centerLng = (shkImgBounds[0][1] + shkImgBounds[1][1]) / 2;
+    const contextRadius = 100000; // 100km padding around AOI
+    const contextView = [
+      [centerLat - contextRadius, centerLng - contextRadius],
+      [centerLat + contextRadius, centerLng + contextRadius]
+    ];
+    
+    STATE.map.fitBounds(contextView);
+    STATE.map.setMaxBounds(globalBounds); // Allow panning full global area
   } else {
     STATE.map.fitBounds(shkImgBounds);
     STATE.map.setMaxBounds(shkImgBounds);

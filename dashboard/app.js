@@ -129,31 +129,48 @@ async function initMap() {
   const shkImgBounds = [[m.south, m.west], [m.north, m.east]];
   STATE.aoiBounds = shkImgBounds;  // Store for zoom button
 
-  // ── Global context basemap (6000×6000 km south polar region) ────────────
+  // ── Global context basemap (south polar region) ─────────────────────────
   if (STATE.meta.global_basemap) {
     const gb = STATE.meta.global_basemap;
-    const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
+    // Use a more reasonable context area (±300km instead of full ±3000km)
+    // This shows Shackleton crater region rather than entire south pole
+    const contextRadius = 300000; // 300 km in meters
+    const contextBounds = [[-contextRadius, -contextRadius], [contextRadius, contextRadius]];
     
-    // Add global context layer (lower opacity so AOI tile stands out)
-    L.imageOverlay(CFG.overlayDir + 'global_basemap.png', globalBounds, {
-      opacity: 0.5, interactive: false, zIndex: 0,
-    }).addTo(STATE.map);
+    // Add global context layer with higher opacity and brightness filter
+    const globalLayer = L.imageOverlay(CFG.overlayDir + 'global_basemap.png', contextBounds, {
+      opacity: 0.7,
+      interactive: false,
+      zIndex: 0,
+      className: 'global-context-layer'
+    });
+    globalLayer.getElement()?.setAttribute('style', 
+      'filter: brightness(1.3) contrast(1.2);');
+    globalLayer.addTo(STATE.map);
     
-    // Draw a red rectangle showing the AOI tile location within the global context
+    // Draw a red rectangle showing the AOI tile location within the context
     const aoiRect = L.rectangle(shkImgBounds, {
       color: '#ef4444',
-      weight: 2,
+      weight: 3,
       fillOpacity: 0,
-      dashArray: '5, 5',
+      dashArray: '8, 4',
       interactive: false,
       zIndex: 100,
     }).addTo(STATE.map);
-    aoiRect.bindTooltip('16×16 km Analysis Area (Shackleton)', { 
+    aoiRect.bindTooltip('16×16 km High-Resolution Analysis Area', { 
       permanent: false, 
       direction: 'top',
       className: 'dark-tooltip'
     });
+    
+    // Set initial view and bounds to the context area (not full global)
+    STATE.map.fitBounds(contextBounds);
+    STATE.map.setMaxBounds(contextBounds);
+  } else {
+    STATE.map.fitBounds(shkImgBounds);
+    STATE.map.setMaxBounds(shkImgBounds);
   }
+  STATE.map.options.maxBoundsViscosity = 1.0;
 
   // ── Basemap: High-res LOLA DEM hillshade for Shackleton ─────────────────
   L.imageOverlay(CFG.overlayDir + 'dem_hillshade.png', shkImgBounds, {
@@ -198,20 +215,6 @@ async function initMap() {
         cb.checked ? layer.addTo(STATE.map) : STATE.map.removeLayer(layer));
     }
   });
-
-  // Initial view: if global basemap exists, show full south polar context first
-  // Otherwise zoom directly to AOI tile
-  if (STATE.meta.global_basemap) {
-    const gb = STATE.meta.global_basemap;
-    const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
-    STATE.map.fitBounds(globalBounds);
-    // Set max bounds to global extent (allow panning the full south pole)
-    STATE.map.setMaxBounds(globalBounds);
-  } else {
-    STATE.map.fitBounds(shkImgBounds);
-    STATE.map.setMaxBounds(shkImgBounds);
-  }
-  STATE.map.options.maxBoundsViscosity = 1.0;
 
   // Coordinate readout (pixel → approx metres)
   STATE.map.on('mousemove', e => {

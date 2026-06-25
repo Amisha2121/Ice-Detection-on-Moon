@@ -135,7 +135,7 @@ async function initMap() {
     const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
     
     // Add global context layer with proper bounds from meta.json
-    // Apply brightness/contrast to make lunar features more visible
+    // This layer is LOW-RESOLUTION (5.9 km/pixel) — only honest at wide zoom
     const globalLayer = L.imageOverlay(CFG.overlayDir + 'global_basemap.png', globalBounds, {
       opacity: 0.6,
       interactive: false,
@@ -143,6 +143,7 @@ async function initMap() {
       className: 'global-context-layer'
     });
     globalLayer.addTo(STATE.map);
+    STATE.layers.globalContext = globalLayer;
     
     // Apply CSS filter for better visibility (needs to wait for image to load)
     globalLayer.on('load', function() {
@@ -164,6 +165,25 @@ async function initMap() {
       direction: 'top',
       className: 'dark-tooltip'
     });
+    
+    // Zoom-dependent opacity: fade out global layer when zoomed in past its native resolution
+    // Global layer: ~5,859 m/pixel native resolution
+    // AOI layer: ~15.6 m/pixel native resolution
+    // At zoom > -2, the global layer is being upsampled beyond its honest detail
+    const GLOBAL_LAYER_MAX_ZOOM = -2;
+    const updateGlobalLayerOpacity = () => {
+      const z = STATE.map.getZoom();
+      if (z > GLOBAL_LAYER_MAX_ZOOM) {
+        // Zoomed in past global layer's native resolution — fade it out
+        globalLayer.setOpacity(0);
+      } else {
+        // Wide view — show context layer
+        globalLayer.setOpacity(0.6);
+      }
+    };
+    
+    STATE.map.on('zoomend', updateGlobalLayerOpacity);
+    updateGlobalLayerOpacity(); // Set initial state
     
     // Start with a reasonable view showing the AOI in context
     // Zoom to show ~200km around the AOI (compromise between full global and just AOI)

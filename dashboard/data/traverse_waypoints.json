@@ -1,0 +1,456 @@
+{
+  "total_distance_km": 65.14,
+  "n_segments": 5,
+  "waypoints": [
+    {
+      "waypoint_id": 1,
+      "lat": -89.960846,
+      "lon": 32.619243,
+      "elevation_m": 1256.3,
+      "slope_deg": 2.99,
+      "hazard_score": 0.1757,
+      "cumulative_dist_km": 0.005
+    },
+    {
+      "waypoint_id": 2,
+      "lat": -89.988201,
+      "lon": -116.565051,
+      "elevation_m": 1336.0,
+      "slope_deg": 1.94,
+      "hazard_score": 0.1227,
+      "cumulative_dist_km": 0.01
+    },
+    {
+      "waypoint_id": 3,
+      "lat": -89.948016,
+      "lon": -144.293309,
+      "elevation_m": 1414.5,
+      "slope_deg": 1.27,
+      "hazard_score": 0.1308,
+      "cumulative_dist_km": 0.015
+    },
+    {
+      "waypoint_id": 4,
+      "lat": -89.903389,
+      "lon": -145.00798,
+      "elevation_m": 1499.2,
+      "slope_deg": 3.35,
+      "hazard_score": 0.1584,
+      "cumulative_dist_km": 0.02
+    },
+    {
+      "waypoint_id": 5,
+      "lat": -89.867924,
+      "lon": -145.992508,
+      "elevation_m": 1539.0,
+      "slope_deg": 8.03,
+      "hazard_score": 0.2906,
+      "cumulative_dist_km": 0.025
+    },
+    {
+      "waypoint_id": 6,
+      "lat": -89.839555,
+      "lon": -135.6662,
+      "elevation_m": 1291.3,
+      "slope_deg": 18.4,
+      "hazard_score": 0.4572,
+      "cumulative_dist_km": 0.03
+    },
+    {
+      "waypoint_id": 7,
+      "lat": -89.82214,
+      "lon": -122.275644,
+      "elevation_m": 861.3,
+      "slope_deg": 13.85,
+      "hazard_score": 0.3625,
+      "cumulative_dist_km": 0.035
+    },
+    {
+      "waypoint_id": 8,
+      "lat": -89.811436,
+      "lon": -109.195468,
+      "elevation_m": 495.5,
+      "slope_deg": 10.67,
+      "hazard_score": 0.2379,
+      "cumulative_dist_km": 0.04
+    },
+    {
+      "waypoint_id": 9,
+      "lat": -89.811187,
+      "lon": -97.224316,
+      "elevation_m": 234.2,
+      "slope_deg": 8.58,
+      "hazard_score": 0.225,
+      "cumulative_dist_km": 0.045
+    },
+    {
+      "waypoint_id": 10,
+      "lat": -89.820015,
+      "lon": -85.375849,
+      "elevation_m": -18.1,
+      "slope_deg": 10.57,
+      "hazard_score": 0.2457,
+      "cumulative_dist_km": 0.05
+    },
+    {
+      "waypoint_id": 11,
+      "lat": -89.828678,
+      "lon": -80.247575,
+      "elevation_m": -119.4,
+      "slope_deg": 5.43,
+      "hazard_score": 0.2519,
+      "cumulative_dist_km": 0.055
+    },
+    {
+      "waypoint_id": 12,
+      "lat": -89.813132,
+      "lon": -103.055247,
+      "elevation_m": 367.5,
+      "slope_deg": 9.98,
+      "hazard_score": 0.2366,
+      "cumulative_dist_km": 0.06
+    },
+    {
+      "waypoint_id": 13,
+      "lat": -89.82384,
+      "lon": -129.530905,
+      "elevation_m": 1071.7,
+      "slope_deg": 13.97,
+      "hazard_score": 0.3142,
+      "cumulative_dist_km": 0.065
+    },
+    {
+      "waypoint_id": 14,
+      "lat": -89.882814,
+      "lon": -148.815025,
+      "elevation_m": 1534.8,
+      "slope_deg": 4.43,
+      "hazard_score": 0.1995,
+      "cumulative_dist_km": 0.07
+    },
+    {
+      "waypoint_id": 15,
+      "lat": -89.969233,
+      "lon": -149.036243,
+      "elevation_m": 1370.9,
+      "slope_deg": 9.85,
+      "hazard_score": 0.3372,
+      "cumulative_dist_km": 0.075
+    },
+    {
+      "waypoint_id": 16,
+      "lat": -89.948487,
+      "lon": 50.194429,
+      "elevation_m": 1251.1,
+      "slope_deg": 9.72,
+      "hazard_score": 0.462,
+      "cumulative_dist_km": 0.08
+    },
+    {
+      "waypoint_id": 17,
+      "lat": -89.879324,
+      "lon": 74.140634,
+      "elevation_m": 562.1,
+      "slope_deg": 24.68,
+      "hazard_score": 0.7113,
+      "cumulative_dist_km": 0.085
+    },
+    {
+      "waypoint_id": 18,
+      "lat": -89.803306,
+      "lon": 80.348167,
+      "elevation_m": 16.7,
+      "slope_deg": 4.48,
+      "hazard_score": 0.3747,
+      "cumulative_dist_km": 0.09
+    },
+    {
+      "waypoint_id": 19,
+      "lat": -89.788439,
+      "lon": 97.52382,
+      "elevation_m": -1184.3,
+      "slope_deg": 31.13,
+      "hazard_score": 0.6083,
+      "cumulative_dist_km": 0.095
+    },
+    {
+      "waypoint_id": 20,
+      "lat": -89.76403,
+      "lon": 116.565051,
+      "elevation_m": -2491.3,
+      "slope_deg": 24.36,
+      "hazard_score": 0.5346,
+      "cumulative_dist_km": 0.1
+    },
+    {
+      "waypoint_id": 21,
+      "lat": -89.734609,
+      "lon": 121.794072,
+      "elevation_m": -2844.5,
+      "slope_deg": 4.61,
+      "hazard_score": 0.2209,
+      "cumulative_dist_km": 0.105
+    },
+    {
+      "waypoint_id": 22,
+      "lat": -89.73321,
+      "lon": 122.275644,
+      "elevation_m": -2842.5,
+      "slope_deg": 7.33,
+      "hazard_score": 0.2934,
+      "cumulative_dist_km": 0.11
+    },
+    {
+      "waypoint_id": 23,
+      "lat": -89.731076,
+      "lon": 122.988522,
+      "elevation_m": -2822.6,
+      "slope_deg": 12.01,
+      "hazard_score": 0.3043,
+      "cumulative_dist_km": 0.115
+    },
+    {
+      "waypoint_id": 24,
+      "lat": -89.728529,
+      "lon": 123.303983,
+      "elevation_m": -2808.9,
+      "slope_deg": 6.21,
+      "hazard_score": 0.1753,
+      "cumulative_dist_km": 0.12
+    },
+    {
+      "waypoint_id": 25,
+      "lat": -89.728519,
+      "lon": 124.307788,
+      "elevation_m": -2795.2,
+      "slope_deg": 3.6,
+      "hazard_score": 0.1214,
+      "cumulative_dist_km": 0.125
+    },
+    {
+      "waypoint_id": 26,
+      "lat": -89.728106,
+      "lon": 124.923703,
+      "elevation_m": -2795.8,
+      "slope_deg": 2.47,
+      "hazard_score": 0.1468,
+      "cumulative_dist_km": 0.13
+    },
+    {
+      "waypoint_id": 27,
+      "lat": -89.727962,
+      "lon": 125.925242,
+      "elevation_m": -2787.6,
+      "slope_deg": 3.48,
+      "hazard_score": 0.1114,
+      "cumulative_dist_km": 0.135
+    },
+    {
+      "waypoint_id": 28,
+      "lat": -89.726406,
+      "lon": 126.372647,
+      "elevation_m": -2781.3,
+      "slope_deg": 3.95,
+      "hazard_score": 0.1743,
+      "cumulative_dist_km": 0.14
+    },
+    {
+      "waypoint_id": 29,
+      "lat": -89.726142,
+      "lon": 127.366669,
+      "elevation_m": -2777.2,
+      "slope_deg": 5.83,
+      "hazard_score": 0.2379,
+      "cumulative_dist_km": 0.145
+    },
+    {
+      "waypoint_id": 30,
+      "lat": -89.726612,
+      "lon": 128.141699,
+      "elevation_m": -2787.8,
+      "slope_deg": 11.37,
+      "hazard_score": 0.283,
+      "cumulative_dist_km": 0.15
+    },
+    {
+      "waypoint_id": 31,
+      "lat": -89.724975,
+      "lon": 128.573972,
+      "elevation_m": -2797.6,
+      "slope_deg": 11.17,
+      "hazard_score": 0.463,
+      "cumulative_dist_km": 0.155
+    },
+    {
+      "waypoint_id": 32,
+      "lat": -89.769095,
+      "lon": 113.929255,
+      "elevation_m": -2318.4,
+      "slope_deg": 30.61,
+      "hazard_score": 0.5849,
+      "cumulative_dist_km": 0.16
+    },
+    {
+      "waypoint_id": 33,
+      "lat": -89.789664,
+      "lon": 94.316028,
+      "elevation_m": -971.2,
+      "slope_deg": 34.79,
+      "hazard_score": 0.6929,
+      "cumulative_dist_km": 0.165
+    },
+    {
+      "waypoint_id": 34,
+      "lat": -89.817595,
+      "lon": 79.583972,
+      "elevation_m": 92.6,
+      "slope_deg": 18.58,
+      "hazard_score": 0.6096,
+      "cumulative_dist_km": 0.17
+    },
+    {
+      "waypoint_id": 35,
+      "lat": -89.894463,
+      "lon": 71.791516,
+      "elevation_m": 710.9,
+      "slope_deg": 12.69,
+      "hazard_score": 0.5116,
+      "cumulative_dist_km": 0.175
+    },
+    {
+      "waypoint_id": 36,
+      "lat": -89.959364,
+      "lon": 35.753887,
+      "elevation_m": 1258.2,
+      "slope_deg": 2.4,
+      "hazard_score": 0.185,
+      "cumulative_dist_km": 0.18
+    },
+    {
+      "waypoint_id": 37,
+      "lat": -89.949856,
+      "lon": -144.637538,
+      "elevation_m": 1409.6,
+      "slope_deg": 8.26,
+      "hazard_score": 0.3884,
+      "cumulative_dist_km": 0.185
+    },
+    {
+      "waypoint_id": 38,
+      "lat": -89.86534,
+      "lon": -150.672821,
+      "elevation_m": 1561.5,
+      "slope_deg": 6.6,
+      "hazard_score": 0.211,
+      "cumulative_dist_km": 0.19
+    },
+    {
+      "waypoint_id": 39,
+      "lat": -89.785698,
+      "lon": -155.643609,
+      "elevation_m": 1735.6,
+      "slope_deg": 0.97,
+      "hazard_score": 0.1533,
+      "cumulative_dist_km": 0.195
+    },
+    {
+      "waypoint_id": 40,
+      "lat": -89.711328,
+      "lon": -161.068279,
+      "elevation_m": 1681.9,
+      "slope_deg": 2.92,
+      "hazard_score": 0.2177,
+      "cumulative_dist_km": 0.2
+    },
+    {
+      "waypoint_id": 41,
+      "lat": -89.674211,
+      "lon": -161.344966,
+      "elevation_m": 1632.7,
+      "slope_deg": 4.73,
+      "hazard_score": 0.2298,
+      "cumulative_dist_km": 0.205
+    },
+    {
+      "waypoint_id": 42,
+      "lat": -89.669998,
+      "lon": -160.623486,
+      "elevation_m": 1655.8,
+      "slope_deg": 3.86,
+      "hazard_score": 0.1787,
+      "cumulative_dist_km": 0.21
+    },
+    {
+      "waypoint_id": 43,
+      "lat": -89.66821,
+      "lon": -159.763891,
+      "elevation_m": 1632.1,
+      "slope_deg": 10.81,
+      "hazard_score": 0.3168,
+      "cumulative_dist_km": 0.215
+    },
+    {
+      "waypoint_id": 44,
+      "lat": -89.666348,
+      "lon": -158.913699,
+      "elevation_m": 1599.7,
+      "slope_deg": 9.96,
+      "hazard_score": 0.3229,
+      "cumulative_dist_km": 0.22
+    },
+    {
+      "waypoint_id": 45,
+      "lat": -89.664414,
+      "lon": -158.073126,
+      "elevation_m": 1567.1,
+      "slope_deg": 12.32,
+      "hazard_score": 0.3112,
+      "cumulative_dist_km": 0.225
+    },
+    {
+      "waypoint_id": 46,
+      "lat": -89.664839,
+      "lon": -157.0679,
+      "elevation_m": 1534.6,
+      "slope_deg": 11.43,
+      "hazard_score": 0.2892,
+      "cumulative_dist_km": 0.23
+    },
+    {
+      "waypoint_id": 47,
+      "lat": -89.666366,
+      "lon": -155.968508,
+      "elevation_m": 1498.8,
+      "slope_deg": 8.59,
+      "hazard_score": 0.2485,
+      "cumulative_dist_km": 0.235
+    },
+    {
+      "waypoint_id": 48,
+      "lat": -89.666575,
+      "lon": -154.955718,
+      "elevation_m": 1470.6,
+      "slope_deg": 13.63,
+      "hazard_score": 0.338,
+      "cumulative_dist_km": 0.24
+    },
+    {
+      "waypoint_id": 49,
+      "lat": -89.661931,
+      "lon": -154.334809,
+      "elevation_m": 1433.5,
+      "slope_deg": 11.11,
+      "hazard_score": 0.2497,
+      "cumulative_dist_km": 0.245
+    },
+    {
+      "waypoint_id": 50,
+      "lat": -89.655459,
+      "lon": -154.12168,
+      "elevation_m": 1396.2,
+      "slope_deg": 9.28,
+      "hazard_score": 0.4181,
+      "cumulative_dist_km": 0.25
+    }
+  ]
+}

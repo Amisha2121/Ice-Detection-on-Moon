@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LunarIce | Chandrayaan-2 South Pole Ice Explorer</title>
+  <meta name="description" content="Interactive dashboard for Chandrayaan-2 DFSAR subsurface ice detection at the Lunar South Pole — Bharatiya Antariksh Hackathon 2026" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Plotly (loaded async in app.js) -->
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css?v=6" />
+</head>
+
+<body>
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header id="top-bar">
+    <div class="logo-wrap">
+      <div class="logo-ring">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="18" stroke="#60a5fa" stroke-width="1.5"/>
+          <circle cx="20" cy="20" r="10" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+          <path d="M20 2 A18 18 0 0 1 38 20" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="20" cy="20" r="3" fill="#60a5fa"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="app-title">LunarIce<span class="app-subtitle-inline"> Explorer</span></h1>
+        <p class="app-tagline">Chandrayaan-2 DFSAR + OHRC · Shackleton Crater · 89.9°S</p>
+      </div>
+    </div>
+
+    <div class="header-badges">
+      <span class="badge badge-hackathon">BAH 2026 · Challenge #8</span>
+      <span class="badge badge-isro">ISRO PRADAN Data</span>
+      <div id="status-indicator" class="status-dot loading" title="Loading data…"></div>
+    </div>
+  </header>
+
+  <!-- ── Main Layout ──────────────────────────────────────────────────────── -->
+  <div id="app-layout">
+
+    <!-- Left Panel: Controls -->
+    <aside id="left-panel">
+      <section class="panel-section">
+        <h2 class="panel-heading">📡 Data Layers</h2>
+        <div class="layer-list" id="layer-controls">
+          <label class="layer-item active" id="lbl-psr">
+            <input type="checkbox" id="layer-psr" checked />
+            <span class="layer-swatch" style="background:#3b82f6"></span>
+            PSR Mask
+            <span class="layer-info">Permanently Shadowed</span>
+          </label>
+          <label class="layer-item active" id="lbl-cpr">
+            <input type="checkbox" id="layer-cpr" checked />
+            <span class="layer-swatch" style="background: linear-gradient(90deg,#fbbf24,#ef4444)"></span>
+            CPR Map
+            <span class="layer-info">Circular Polarisation Ratio</span>
+          </label>
+          <label class="layer-item" id="lbl-ice">
+            <input type="checkbox" id="layer-ice" />
+            <span class="layer-swatch" style="background:#a855f7"></span>
+            Ice Probability
+            <span class="layer-info">CPR>1 &amp; DOP&lt;0.13</span>
+          </label>
+          <label class="layer-item" id="lbl-hazard">
+            <input type="checkbox" id="layer-hazard" />
+            <span class="layer-swatch" style="background:#f97316"></span>
+            Hazard Map
+            <span class="layer-info">Slope + Roughness + Boulders</span>
+          </label>
+          <label class="layer-item active" id="lbl-landing">
+            <input type="checkbox" id="layer-landing" checked />
+            <span class="layer-swatch" style="background:#22c55e"></span>
+            Landing Sites
+            <span class="layer-info">Top-3 Ranked Candidates</span>
+          </label>
+          <label class="layer-item active" id="lbl-traverse">
+            <input type="checkbox" id="layer-traverse" checked />
+            <span class="layer-swatch" style="background:#f59e0b"></span>
+            Rover Traverse
+            <span class="layer-info">A* Optimal Path</span>
+          </label>
+          <label class="layer-item" id="lbl-dsc">
+            <input type="checkbox" id="layer-dsc" />
+            <span class="layer-swatch" style="background:#e879f9"></span>
+            DSC Targets
+            <span class="layer-info">Doubly Shadowed Craters</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h2 class="panel-heading">🚀 Traverse Animation</h2>
+        <div class="traverse-controls">
+          <button id="btn-play" class="ctrl-btn primary">▶ Play</button>
+          <button id="btn-reset" class="ctrl-btn">⟳ Reset</button>
+          <div class="slider-wrap">
+            <label>Speed</label>
+            <input type="range" id="speed-slider" min="1" max="10" value="5" />
+          </div>
+          <div id="traverse-progress">
+            <div class="prog-label">Progress: <span id="prog-pct">0%</span></div>
+            <div class="prog-bar-bg"><div id="prog-bar" class="prog-bar-fill"></div></div>
+            <div id="rover-stats"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h2 class="panel-heading">📊 Thresholds</h2>
+        <div class="threshold-controls">
+          <div class="thresh-item">
+            <label>CPR min: <span id="cpr-val">1.00</span></label>
+            <input type="range" id="thresh-cpr" min="0" max="3" step="0.05" value="1.0" />
+          </div>
+          <div class="thresh-item">
+            <label>DOP max: <span id="dop-val">0.13</span></label>
+            <input type="range" id="thresh-dop" min="0" max="1" step="0.01" value="0.13" />
+          </div>
+          <div class="thresh-item">
+            <label>Ice prob min: <span id="prob-val">0.50</span></label>
+            <input type="range" id="thresh-prob" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+          <button id="btn-apply-thresh" class="ctrl-btn">Apply</button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Map -->
+    <main id="map-container">
+      <div id="map"></div>
+      <div id="map-coords">📍 –</div>
+      <div id="scale-bar"></div>
+    </main>
+
+    <!-- Right Panel: Analytics -->
+    <aside id="right-panel">
+
+      <!-- Ice Volume Gauge -->
+      <section class="panel-section">
+        <h2 class="panel-heading">🧊 Ice Volume</h2>
+        <div id="volume-gauge"></div>
+        <div class="volume-stats" id="volume-stats">
+          <div class="vstat-row">
+            <span class="vstat-label">Point estimate</span>
+            <span class="vstat-val" id="vol-point">—</span>
+          </div>
+          <div class="vstat-row">
+            <span class="vstat-label">90% CI</span>
+            <span class="vstat-val" id="vol-ci">—</span>
+          </div>
+          <div class="vstat-row">
+            <span class="vstat-label">Ice area</span>
+            <span class="vstat-val" id="vol-area">—</span>
+          </div>
+          <div class="vstat-row">
+            <span class="vstat-label">Mean conc.</span>
+            <span class="vstat-val" id="vol-conc">—</span>
+          </div>
+          <div class="vstat-row">
+            <span class="vstat-label">Est. mass</span>
+            <span class="vstat-val" id="vol-mass">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Landing Site Rankings -->
+      <section class="panel-section">
+        <h2 class="panel-heading">🛬 Landing Sites</h2>
+        <div id="landing-table"></div>
+      </section>
+
+      <!-- CPR Histogram -->
+      <section class="panel-section">
+        <h2 class="panel-heading">📈 CPR Distribution</h2>
+        <div id="cpr-chart"></div>
+      </section>
+
+      <!-- Traverse Profile -->
+      <section class="panel-section">
+        <h2 class="panel-heading">🗺️ Elevation Profile</h2>
+        <div id="elev-chart"></div>
+      </section>
+
+    </aside>
+
+  </div>
+
+  <!-- ── Info Popup ────────────────────────────────────────────────────────── -->
+  <div id="info-popup" class="popup hidden">
+    <div class="popup-header">
+      <span id="popup-title">Feature Info</span>
+      <button onclick="document.getElementById('info-popup').classList.add('hidden')">✕</button>
+    </div>
+    <div id="popup-body"></div>
+  </div>
+
+  <!-- ── Toast ─────────────────────────────────────────────────────────────── -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Plotly JS -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <!-- App -->
+  <script src="app.js?v=12"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "bounds": {
+    "west": -9000.0,
+    "south": -15000.0,
+    "east": 7000.0,
+    "north": 1000.0
+  },
+  "crs": "EPSG:32761 (Lunar South Pole Stereographic)",
+  "global_basemap": {
+    "west": -3000000.0,
+    "south": -3000000.0,
+    "east": 3000000.0,
+    "north": 3000000.0
+  },
+  "size": [
+    1024,
+    1024
+  ],
+  "overlays": [
+    "dem_hillshade.png",
+    "psr_overlay.png",
+    "slope_overlay.png",
+    "ice_prob_overlay.png",
+    "cpr_overlay.png",
+    "hazard_overlay.png"
+  ]
+}

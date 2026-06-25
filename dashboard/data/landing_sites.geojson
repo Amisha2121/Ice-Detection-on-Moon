@@ -1,0 +1,74 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.536528889982893,
+          -89.95474285914295
+        ]
+      },
+      "properties": {
+        "rank": 1,
+        "suitability_score": 0.815,
+        "lat": -89.954743,
+        "lon": 29.536529,
+        "slope_deg": 0.0,
+        "hazard_score": 0.0,
+        "solar_fraction": 0.3,
+        "ice_probability_nearby": NaN,
+        "distance_to_ice_m": 1.0,
+        "label": "LS-1",
+        "rationale": "Rank 1: score=0.815, slope=0.0\u00b0, distance to ice=0.00 km"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          177.41129910533536,
+          -89.49142702005742
+        ]
+      },
+      "properties": {
+        "rank": 2,
+        "suitability_score": 0.5951,
+        "lat": -89.491427,
+        "lon": 177.411299,
+        "slope_deg": 0.0,
+        "hazard_score": 0.0,
+        "solar_fraction": 0.3,
+        "ice_probability_nearby": NaN,
+        "distance_to_ice_m": 16.0,
+        "label": "LS-2",
+        "rationale": "Rank 2: score=0.595, slope=0.0\u00b0, distance to ice=0.02 km"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          178.0279944944077,
+          -88.96833027108961
+        ]
+      },
+      "properties": {
+        "rank": 3,
+        "suitability_score": 0.595,
+        "lat": -88.96833,
+        "lon": 178.027994,
+        "slope_deg": 0.0,
+        "hazard_score": 0.0,
+        "solar_fraction": 0.3,
+        "ice_probability_nearby": NaN,
+        "distance_to_ice_m": 32.0,
+        "label": "LS-3",
+        "rationale": "Rank 3: score=0.595, slope=0.0\u00b0, distance to ice=0.03 km"
+      }
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "scene_pixel_size_m": 20.0,
+  "ice_detection": {
+    "n_ice_pixels": 1,
+    "pixel_area_m2": 400.0,
+    "ice_area_m2": 400.0,
+    "ice_area_km2": 0.0004
+  },
+  "dielectric_inversion": {
+    "model": "Fresnel reflection + CPR normalisation",
+    "epsilon_regolith": 2.7,
+    "epsilon_ice": 3.15,
+    "mean_epsilon_detected_region": 10.0
+  },
+  "concentration": {
+    "model": "Briefing formula (conservative)",
+    "mean_ice_fraction_pct": 10.0,
+    "low_pct": 5.0,
+    "high_pct": 20.0
+  },
+  "volume_estimate": {
+    "depth_mid_m": 2.5,
+    "depth_range_m": [
+      1.0,
+      5.0
+    ],
+    "conc_range": [
+      0.05,
+      0.2
+    ],
+    "point_estimate_km3": 1e-07,
+    "point_estimate_m3": 100.0,
+    "vol_low_km3": 2e-08,
+    "vol_high_km3": 4e-07,
+    "mass_Gt": 9.2e-09,
+    "monte_carlo": {
+      "n_draws": 1000,
+      "mean_km3": 1.51e-07,
+      "std_km3": 8.09e-08,
+      "p5_km3": 4.39e-08,
+      "p95_km3": 3.17e-07,
+      "cpr_noise_pct": 15,
+      "samples": 1000
+    }
+  },
+  "references": [
+    "Spudis et al. 2013 \u2014 Mini-RF CPR baseline",
+    "Fresnel reflection model \u2014 Nozette et al. 1996",
+    "Ice density 917 kg/m3 \u2014 CRC Handbook",
+    "Briefing formula chain: vol = area \u00d7 depth \u00d7 ice_fraction"
+  ]
+}

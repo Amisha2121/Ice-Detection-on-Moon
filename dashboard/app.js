@@ -112,7 +112,10 @@ function formatNum(n, digits = 4) {
 // ── Map Initialisation ────────────────────────────────────────────────────────
 
 async function initMap() {
+  console.log('[Init] Loading meta.json...');
   STATE.meta = await fetchJSON(FILES.overlayMeta);
+  console.log('[Init] Meta loaded:', STATE.meta);
+  
   const sz = CFG.regionPx;
 
   STATE.map = L.map('map', {
@@ -122,12 +125,16 @@ async function initMap() {
     zoomControl:      true,
     attributionControl: false,
   });
+  
+  console.log('[Init] Leaflet map created');
 
   // Define actual geographic/projected bounds for the Shackleton tile
   const m = STATE.meta.bounds;
   // Leaflet expects [lat, lng] which maps to [y, x] in L.CRS.Simple
   const shkImgBounds = [[m.south, m.west], [m.north, m.east]];
   STATE.aoiBounds = shkImgBounds;  // Store for zoom button
+  
+  console.log('[Init] AOI bounds:', shkImgBounds);
 
   // ── Global context basemap (south polar region) ─────────────────────────
   if (STATE.meta.global_basemap) {
@@ -173,6 +180,10 @@ async function initMap() {
     const GLOBAL_LAYER_MAX_ZOOM = -2;
     const updateGlobalLayerOpacity = () => {
       const z = STATE.map.getZoom();
+      if (z == null || isNaN(z)) {
+        console.warn('[Map Zoom] Zoom level is undefined or NaN');
+        return;
+      }
       console.log(`[Map Zoom] Current zoom: ${z.toFixed(2)}, Threshold: ${GLOBAL_LAYER_MAX_ZOOM}`);
       if (z > GLOBAL_LAYER_MAX_ZOOM) {
         // Zoomed in past global layer's native resolution — fade it out
@@ -186,7 +197,11 @@ async function initMap() {
     };
     
     STATE.map.on('zoomend', updateGlobalLayerOpacity);
-    updateGlobalLayerOpacity(); // Set initial state
+    // Wait for map to be ready before calling update
+    STATE.map.whenReady(() => {
+      console.log('[Map] Map is ready, setting initial zoom opacity');
+      updateGlobalLayerOpacity();
+    });
     
     // Start with a reasonable view showing the AOI in context
     // Zoom to show ~200km around the AOI (compromise between full global and just AOI)

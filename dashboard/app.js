@@ -478,12 +478,28 @@ document.getElementById('btn-play').addEventListener('click', () =>
   STATE.traverseTimer ? stopTraverse() : startTraverse());
 document.getElementById('btn-reset').addEventListener('click', resetTraverse);
 
+// ── Data quality banner ────────────────────────────────────────────────────────
+
+function showDataQualityBanner(dq) {
+  const banner = document.getElementById('data-quality-banner');
+  if (!banner || !dq) return;
+
+  if (dq.synthetic || dq.cpr_dop_detection_valid === false) {
+    const label = dq.synthetic ? 'SYNTHETIC DEMO DATA' : 'ICE DETECTION NOT VALID';
+    banner.textContent = `${label}: ${dq.limitation_message || 'CPR/DOP results are not from spacecraft polarimetry.'}`;
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
 // ── Ice Volume Report ──────────────────────────────────────────────────────────
 
 async function loadVolumeReport() {
   try {
     const report = await fetchJSON(FILES.volumeReport);
     STATE.volumeData = report;
+    showDataQualityBanner(report.data_quality);
     const ve = report.volume_estimate, mc = ve.monte_carlo;
     const ic = report.ice_detection,  co = report.concentration;
     document.getElementById('vol-point').textContent =

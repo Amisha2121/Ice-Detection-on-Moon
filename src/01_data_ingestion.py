@@ -34,6 +34,7 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from utils.geo_utils import (reproject_to_lunar_polar, coregister_to_reference,
                                read_band, save_band, LUNAR_CRS)
+from utils.dfsar_meta import write_dfsar_meta
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -388,52 +389,294 @@ def _check_dfsar_overlap(product_path: str, ref_path: str) -> bool:
         return False
 
 
-def ingest_dfsar(products: list, ref_path: str) -> str | None:
+def _find_decomp_tifs() -> dict:
+    """Locate odd/evn/vol/hlx decomposition GeoTIFFs (ndxl polarimetric products)."""
+    decomp = {}
+    for key in ["odd", "evn", "vol", "hlx"]:
+        matches = glob.glob(os.path.join(RAW_DFSAR, "**", f"*{key}*.tif"), recursive=True)
+        matches += glob.glob(os.path.join(RAW_DFSAR, "**", f"*{key.upper()}*.TIF"), recursive=True)
+        matches = [m for m in matches if "browse" not in m.lower()]
+        if matches:
+            decomp[key] = matches[0]
+    return decomp
+
+
+def _find_cp_tifs() -> dict:
+    """Locate compact-polarimetry LH/LV amplitude pairs."""
+    cp = {"lh": None, "lv": None}
+    for key in cp:
+        matches = glob.glob(os.path.join(RAW_DFSAR, "**", f"*cp_{key}*.tif"), recursive=True)
+        matches += glob.glob(os.path.join(RAW_DFSAR, "**", f"*cp_{key}*.TIF"), recursive=True)
+        matches = [m for m in matches if "browse" not in m.lower() and "_sli_" not in m.lower()]
+        if matches:
+            cp[key] = matches[0]
+    return cp
+
+
+def _save_stokes_tif(ref_profile: dict, S1, S2, S3, S0) -> str:
+    final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
+    profile = ref_profile.copy()
+    profile.update({"count": 4, "dtype": "float32", "compress": "lzw", "nodata": None})
+    with rasterio.open(final_path, "w", **profile) as dst:
+        dst.write(S1.astype(np.float32), 1)
+        dst.write(S2.astype(np.float32), 2)
+        dst.write(S3.astype(np.float32), 3)
+        dst.write(S0.astype(np.float32), 4)
+    return final_path
+
+
+def _stokes_from_decomposition(data_bands: dict, ref_profile: dict) -> str:
+    Ps = data_bands["odd"]
+    Pd = data_bands["evn"]
+    Pv = data_bands["vol"]
+    Ph = data_bands["hlx"]
+
+    S0 = Ps + Pd + Pv + Ph
+    S0_safe = S0 + 1e-12
+    m = np.clip(1.0 - Pv / S0_safe, 0.0, 1.0)
+    S3 = np.clip(Ps - Pd - Pv, -S0 * m, S0 * m)
+    S1 = np.sqrt(np.clip((S0 * m) ** 2 - S3 ** 2, 0.0, None))
+    S2 = np.zeros_like(S0)
+    return _save_stokes_tif(ref_profile, S1, S2, S3, S0)
+
+
+def _stokes_from_compact_pol(LH, LV, ref_profile: dict) -> str:
+    """Derive Stokes from LH/LV compact-pol amplitudes (two independent channels)."""
+    S0 = LH ** 2 + LV ** 2
+    S1 = LH ** 2 - LV ** 2
+    S2 = np.zeros_like(S0)
+    S3 = -S1
+    return _save_stokes_tif(ref_profile, S1, S2, S3, S0)
+
+
+def _synthesize_demo_stokes(amp: np.ndarray) -> tuple:
     """
-    Process DFSAR products:
-    1. Checks real spatial overlap using XML corner lat/lons (GCP-based)
-    2. Warps each overlapping product onto the LOLA DEM grid using 4 corner GCPs
-    3. Reconstructs pseudo-Stokes 4-band (S0, S1, S2, S3) from LH/LV amplitude bands
-    4. Saves dfsar_stokes.tif co-registered to the LOLA DEM grid
+    OFFLINE UI DEMO ONLY — not a physical measurement.
+    Do not use for science outputs or judge presentations.
     """
-    if not products:
+    S0 = amp ** 2
+    if np.max(S0) <= 0:
+        zeros = np.zeros_like(S0)
+        return zeros, zeros, zeros, zeros
+    p90 = np.percentile(S0[S0 > 0], 90)
+    S3 = S0 * (0.5 - 0.6 * np.clip(S0 / p90, 0, 1.5))
+    S1 = S0 * 0.05
+    S2 = np.zeros_like(S0)
+    return S1, S2, S3, S0
+
+
+def _ingest_decomposition_products(ref_path: str, ref_profile: dict) -> str | None:
+    decomp = _find_decomp_tifs()
+    if not any(decomp.values()):
         return None
 
-    # ── Footprint overlap check using real XML corner lat/lons ─────────────────
-    print(f"\n[DFSAR] Checking {len(products)} product footprint(s) against LOLA DEM tile...")
-    overlapping = []
+    print("\n[DFSAR] Processing polarimetric decomposition products (odd/evn/vol/hlx)...")
+    coreg_paths = {}
+    for key, path in decomp.items():
+        reproj_out = os.path.join(PROCESSED, f"dfsar_reproj_{key}.tif")
+        coreg_out = os.path.join(PROCESSED, f"dfsar_coreg_{key}.tif")
+        print(f"  {key.upper()}: {os.path.basename(path)}")
+        reproject_to_lunar_polar(path, reproj_out, resolution_m=5.0, ref_path=ref_path)
+        coregister_to_reference(reproj_out, ref_path, coreg_out)
+        coreg_paths[key] = coreg_out
+
+    shape = (ref_profile["height"], ref_profile["width"])
+    data_bands = {}
+    for key in ["odd", "evn", "vol", "hlx"]:
+        if key in coreg_paths:
+            with rasterio.open(coreg_paths[key]) as src:
+                data = src.read(1).astype(np.float32)
+                if src.nodata is not None:
+                    data[data == src.nodata] = 0.0
+                data_bands[key] = np.clip(np.nan_to_num(data, nan=0.0), 0.0, None)
+        else:
+            data_bands[key] = np.zeros(shape, dtype=np.float32)
+
+    final_path = _stokes_from_decomposition(data_bands, ref_profile)
+    print(f"  Reconstructed Stokes from decomposition saved to: {final_path}")
+    return final_path
+
+
+def _ingest_compact_pol_products(ref_path: str, ref_profile: dict) -> str | None:
+    cp = _find_cp_tifs()
+    if not (cp["lh"] and cp["lv"]):
+        return None
+
+    print("\n[DFSAR] Processing compact-polarimetry LH/LV products...")
+    data_bands = {}
+    for key, path in cp.items():
+        reproj_out = os.path.join(PROCESSED, f"dfsar_reproj_cp_{key}.tif")
+        coreg_out = os.path.join(PROCESSED, f"dfsar_coreg_cp_{key}.tif")
+        print(f"  CP {key.upper()}: {os.path.basename(path)}")
+        reproject_to_lunar_polar(path, reproj_out, resolution_m=5.0, ref_path=ref_path)
+        coregister_to_reference(reproj_out, ref_path, coreg_out)
+        with rasterio.open(coreg_out) as src:
+            data = src.read(1).astype(np.float32)
+            if src.nodata is not None:
+                data[data == src.nodata] = 0.0
+            data_bands[key] = np.nan_to_num(data, nan=0.0)
+
+    final_path = _stokes_from_compact_pol(data_bands["lh"], data_bands["lv"], ref_profile)
+    print(f"  Reconstructed CP Stokes (LH/LV) saved to: {final_path}")
+    return final_path
+
+
+def _ingest_standard_stokes_products(products: list, ref_path: str, ref_profile: dict) -> str | None:
+    """Handle pre-computed 4-band Stokes GeoTIFFs."""
+    stokes_products = []
     for p in products:
-        if _check_dfsar_overlap(p, ref_path):
-            overlapping.append(p)
+        try:
+            with rasterio.open(p) as src:
+                if src.count >= 4:
+                    stokes_products.append(p)
+        except Exception:
+            continue
 
-    if not overlapping:
-        print("!" * 70)
-        print("  [DFSAR] NO products overlap the LOLA DEM tile.")
-        print("  All DFSAR granules cover a different part of the lunar surface.")
-        print("  Pipeline will run but ice detection will produce zero pixels.")
-        print("!" * 70)
+    if not stokes_products:
         return None
 
-    print(f"  {len(overlapping)}/{len(products)} product(s) overlap the DEM tile — processing those.")
+    print(f"\n[DFSAR] Processing {len(stokes_products)} standard 4-band Stokes product(s)...")
+    reproj_paths = []
+    for i, p in enumerate(stokes_products):
+        out = os.path.join(PROCESSED, f"dfsar_reproj_{i}.tif")
+        print(f"  Reprojecting: {os.path.basename(p)}")
+        reproject_to_lunar_polar(p, out, resolution_m=5.0, ref_path=ref_path)
+        reproj_paths.append(out)
 
-    # ── Process Overlapping Products ─────────────────
-    print("\n[DFSAR] Processing overlapping products via XML GCP warp...")
-    
-    warped_paths = []
-    for i, p in enumerate(overlapping):
-        dst = os.path.join(PROCESSED, f"dfsar_coreg_{i}.tif")
-        success = reproject_dfsar_with_gcps(p, dst, ref_path)
-        if success:
-            warped_paths.append(dst)
+    coreg_paths = []
+    for i, p in enumerate(reproj_paths):
+        out = os.path.join(PROCESSED, f"dfsar_coreg_{i}.tif")
+        coregister_to_reference(p, ref_path, out)
+        coreg_paths.append(out)
 
-    if not warped_paths:
-        print("  [DFSAR] No products warped successfully \u2014 cannot build Stokes file.")
+    final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
+    if len(coreg_paths) == 1:
+        import shutil
+        shutil.copy(coreg_paths[0], final_path)
+    else:
+        datasets = [rasterio.open(p) for p in coreg_paths]
+        mosaic, transform = merge(datasets, method="first")
+        profile = datasets[0].profile.copy()
+        profile.update({"transform": transform,
+                        "width": mosaic.shape[2],
+                        "height": mosaic.shape[1],
+                        "count": mosaic.shape[0]})
+        with rasterio.open(final_path, "w", **profile) as dst:
+            dst.write(mosaic)
+        for ds in datasets:
+            ds.close()
+
+    print(f"  Saved standard Stokes product: {final_path}")
+    return final_path
+
+
+def ingest_dfsar(products: list, ref_path: str, synthetic_demo: bool = False) -> str | None:
+    """
+    Process DFSAR products into a 4-band Stokes GeoTIFF co-registered to the LOLA grid.
+
+    Priority:
+      1. Polarimetric decomposition TIFs (odd/evn/vol/hlx)
+      2. Compact-pol LH+LV pair
+      3. Native 4-band Stokes GeoTIFFs
+      4. Single-band PDS4 amplitude: XML GCP warp only; no Stokes unless --synthetic-demo
+
+    Writes data/processed/dfsar_ingestion_meta.json documenting the source.
+    """
+    stokes_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
+    limitation = (
+        "Available DFSAR product is single-band amplitude only. "
+        "CPR and DOP ice detection require multi-channel polarimetry "
+        "(decomposition odd/evn/vol/hlx, compact-pol LH+LV, or full-pol Stokes). "
+        "Re-download the ndxl decomposition or LH/LV pair for this pass from PRADAN."
+    )
+
+    if not products:
+        write_dfsar_meta(
+            PROCESSED,
+            polarimetry_source="none",
+            synthetic=False,
+            cpr_dop_detection_valid=False,
+            limitation_message="No DFSAR products found in data/raw/dfsar/",
+        )
+        if os.path.exists(stokes_path):
+            os.remove(stokes_path)
         return None
 
     with rasterio.open(ref_path) as ref:
         ref_profile = ref.profile.copy()
 
-    # Mosaic warped amplitude bands
+    result = _ingest_decomposition_products(ref_path, ref_profile)
+    if result:
+        write_dfsar_meta(
+            PROCESSED,
+            polarimetry_source="decomposition",
+            synthetic=False,
+            cpr_dop_detection_valid=True,
+            limitation_message=None,
+        )
+        return result
+
+    result = _ingest_compact_pol_products(ref_path, ref_profile)
+    if result:
+        write_dfsar_meta(
+            PROCESSED,
+            polarimetry_source="compact_pol_lh_lv",
+            synthetic=False,
+            cpr_dop_detection_valid=True,
+            limitation_message=None,
+        )
+        return result
+
+    result = _ingest_standard_stokes_products(products, ref_path, ref_profile)
+    if result:
+        write_dfsar_meta(
+            PROCESSED,
+            polarimetry_source="stokes_4band",
+            synthetic=False,
+            cpr_dop_detection_valid=True,
+            limitation_message=None,
+        )
+        return result
+
+    # ── Single-band PDS4 products: XML GCP warp (real georeferencing fix) ─────
+    print(f"\n[DFSAR] Checking {len(products)} product footprint(s) against LOLA DEM tile...")
+    overlapping = [p for p in products if _check_dfsar_overlap(p, ref_path)]
+
+    if not overlapping:
+        print("!" * 70)
+        print("  [DFSAR] NO products overlap the LOLA DEM tile.")
+        print("  Pipeline will run but ice detection will produce zero pixels.")
+        print("!" * 70)
+        write_dfsar_meta(
+            PROCESSED,
+            polarimetry_source="none",
+            synthetic=False,
+            cpr_dop_detection_valid=False,
+            limitation_message="DFSAR swath does not overlap the LOLA DEM tile.",
+        )
+        if os.path.exists(stokes_path):
+            os.remove(stokes_path)
+        return None
+
+    print(f"  {len(overlapping)}/{len(products)} product(s) overlap — warping amplitude via XML GCPs...")
+    warped_paths = []
+    for i, p in enumerate(overlapping):
+        dst = os.path.join(PROCESSED, f"dfsar_coreg_{i}.tif")
+        if reproject_dfsar_with_gcps(p, dst, ref_path):
+            warped_paths.append(dst)
+
+    if not warped_paths:
+        write_dfsar_meta(
+            PROCESSED,
+            polarimetry_source="amplitude_only",
+            synthetic=False,
+            cpr_dop_detection_valid=False,
+            limitation_message=limitation,
+        )
+        if os.path.exists(stokes_path):
+            os.remove(stokes_path)
+        return None
+
     if len(warped_paths) == 1:
         with rasterio.open(warped_paths[0]) as src:
             amp = src.read(1).astype(np.float32)
@@ -445,41 +688,58 @@ def ingest_dfsar(products: list, ref_path: str) -> str | None:
         mosaic, _ = merge(datasets, method="first")
         for ds in datasets:
             ds.close()
-        amp = mosaic[0].astype(np.float32)
-        amp = np.nan_to_num(amp, nan=0.0)
+        amp = np.nan_to_num(mosaic[0].astype(np.float32), nan=0.0)
 
-    # For PRADAN CP (nrxl) products, the single band is usually amplitude.
-    # We synthesize pseudo-Stokes such that the brightest 10% of pixels exhibit an "ice-like" signature:
-    # High CPR (> 1.0) and Low DOP (< 0.13).
-    S0 = amp**2
-    if np.max(S0) > 0:
-        p90 = np.percentile(S0[S0 > 0], 90)
-        # S3 scales with intensity: S3 = +0.5*S0 at low intensity (CPR=0.33), S3 = -0.1*S0 at p90 (CPR=1.22)
-        S3 = S0 * (0.5 - 0.6 * np.clip(S0 / p90, 0, 1.5))
-        # S1 provides a baseline polarization. S1 = 0.05*S0.
-        S1 = S0 * 0.05
-        S2 = np.zeros_like(S0)
-    else:
-        S1 = np.zeros_like(S0)
-        S2 = np.zeros_like(S0)
-        S3 = np.zeros_like(S0)
+    amp_path = os.path.join(PROCESSED, "dfsar_amplitude_coreg.tif")
+    amp_profile = ref_profile.copy()
+    amp_profile.update({"count": 1, "dtype": "float32", "compress": "lzw", "nodata": 0.0})
+    with rasterio.open(amp_path, "w", **amp_profile) as dst:
+        dst.write(amp, 1)
+    print(f"  Saved co-registered amplitude (reference only): {amp_path}")
 
-    valid = int(np.sum(S0 > 0))
-    print(f"  Reconstructed Stokes: valid pixels with S0>0 = {valid:,}")
-    if valid == 0:
-        print("  [DFSAR] WARNING: Stokes data is still all-zero after GCP warp.")
-        print("    Possible cause: warp succeeded but product has no signal in the DEM tile window.")
+    valid = int(np.sum(amp > 0))
+    print(f"  Valid amplitude pixels: {valid:,}")
 
-    final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
-    ref_profile.update({"count": 4, "dtype": "float32", "compress": "lzw", "nodata": None})
-    with rasterio.open(final_path, "w", **ref_profile) as dst:
-        dst.write(S1, 1)
-        dst.write(S2, 2)
-        dst.write(S3, 3)
-        dst.write(S0, 4)
+    if synthetic_demo:
+        print("\n" + "!" * 70)
+        print("  *** SYNTHETIC DEMO MODE — NOT REAL ICE DETECTION ***")
+        print("  Stokes bands are formula-generated for UI testing only.")
+        print("  Do not present these results as Chandrayaan-2 measurements.")
+        print("!" * 70 + "\n")
+        S1, S2, S3, S0 = _synthesize_demo_stokes(amp)
+        final_path = _save_stokes_tif(ref_profile, S1, S2, S3, S0)
+        write_dfsar_meta(
+            PROCESSED,
+            polarimetry_source="synthetic_demo",
+            synthetic=True,
+            cpr_dop_detection_valid=False,
+            limitation_message=(
+                "SYNTHETIC DEMO: Stokes invented from single-band amplitude. "
+                "Ice pixels are not spacecraft measurements."
+            ),
+        )
+        print(f"  [DEMO] Synthetic Stokes saved to: {final_path}")
+        return final_path
 
-    print(f"  Reconstructed CP pseudo-Stokes parameters saved to: {final_path}")
-    return final_path
+    print("\n" + "!" * 70)
+    print("  [DFSAR] Single-band amplitude only — cannot derive CPR/DOP.")
+    print(f"  {limitation}")
+    print("  Proceeding without Stokes file (will not synthesize values).")
+    print("  Pass --synthetic-demo only for offline UI testing.")
+    print("!" * 70 + "\n")
+
+    if os.path.exists(stokes_path):
+        os.remove(stokes_path)
+
+    write_dfsar_meta(
+        PROCESSED,
+        polarimetry_source="amplitude_only",
+        synthetic=False,
+        cpr_dop_detection_valid=False,
+        limitation_message=limitation,
+        amplitude_reference=amp_path,
+    )
+    return None
 
 
 def reproject_ohrc_with_gcps(xml_path: str, csv_path: str, dst_path: str, ref_path: str):
@@ -634,7 +894,7 @@ def ingest_ohrc(products: list, ref_path: str) -> str | None:
     return final_path
 
 
-def main():
+def main(synthetic_demo: bool = False):
     print("=" * 60)
     print(" LUNAR ICE PIPELINE — Step 1: Data Ingestion")
     print("=" * 60)
@@ -651,7 +911,7 @@ def main():
 
     # ── DFSAR ──
     dfsar_products = find_dfsar_products(RAW_DFSAR)
-    dfsar_out = ingest_dfsar(dfsar_products, lola_processed)
+    dfsar_out = ingest_dfsar(dfsar_products, lola_processed, synthetic_demo=synthetic_demo)
 
     # ── OHRC ──
     ohrc_products = find_ohrc_products(RAW_OHRC)
@@ -670,4 +930,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Lunar Ice Pipeline — Step 1")
+    parser.add_argument(
+        "--synthetic-demo",
+        action="store_true",
+        help="Generate formula-based Stokes from single-band amplitude for UI testing only "
+             "(never use for science or judge presentations)",
+    )
+    args = parser.parse_args()
+    main(synthetic_demo=args.synthetic_demo)

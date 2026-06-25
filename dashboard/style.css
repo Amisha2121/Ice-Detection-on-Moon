@@ -116,6 +116,21 @@ html, body {
   color: #c084fc;
 }
 
+.data-quality-banner {
+  background: linear-gradient(90deg, #7f1d1d, #991b1b);
+  border-bottom: 2px solid #fca5a5;
+  color: #fef2f2;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 10px 20px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.data-quality-banner.hidden {
+  display: none;
+}
+
 .status-dot {
   width: 9px;
   height: 9px;

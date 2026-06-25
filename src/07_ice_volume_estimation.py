@@ -34,6 +34,7 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
 
 sys.path.insert(0, os.path.dirname(__file__))
 from utils.geo_utils import read_band, save_band
+from utils.dfsar_meta import load_dfsar_meta, data_quality_block
 
 ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROCESSED = os.path.join(ROOT, "data", "processed")
@@ -151,7 +152,9 @@ def run_ice_volume_estimation() -> dict:
     print(f"  90% CI:     [{mc_p5:.6e}, {mc_p95:.6e}] km³")
 
     # ── Export report ─────────────────────────────────────────────────────────
+    dfsar_meta = load_dfsar_meta(PROCESSED)
     report = {
+        "data_quality": data_quality_block(dfsar_meta),
         "scene_pixel_size_m":   pixel_size_m,
         "ice_detection": {
             "n_ice_pixels":     n_ice_pixels,

@@ -1,16 +1,22 @@
 {
+  "data_quality": {
+    "synthetic": false,
+    "polarimetry_source": "amplitude_only",
+    "cpr_dop_detection_valid": false,
+    "limitation_message": "Prior pipeline run used formula-synthesized Stokes from single-band amplitude; those ice pixels were invalid. Re-run the pipeline after this fix, or download ndxl decomposition / LH+LV products from PRADAN."
+  },
   "scene_pixel_size_m": 5.0,
   "ice_detection": {
-    "n_ice_pixels": 37,
+    "n_ice_pixels": 0,
     "pixel_area_m2": 25.0,
-    "ice_area_m2": 925.0,
-    "ice_area_km2": 0.000925
+    "ice_area_m2": 0.0,
+    "ice_area_km2": 0.0
   },
   "dielectric_inversion": {
     "model": "Fresnel reflection + CPR normalisation",
     "epsilon_regolith": 2.7,
     "epsilon_ice": 3.15,
-    "mean_epsilon_detected_region": 10.0
+    "mean_epsilon_detected_region": 0.0
   },
   "concentration": {
     "model": "Briefing formula (conservative)",
@@ -28,25 +34,25 @@
       0.05,
       0.2
     ],
-    "point_estimate_km3": 2.313e-07,
-    "point_estimate_m3": 231.25,
-    "vol_low_km3": 4.63e-08,
-    "vol_high_km3": 9.25e-07,
-    "mass_Gt": 2.12e-08,
+    "point_estimate_km3": 0.0,
+    "point_estimate_m3": 0.0,
+    "vol_low_km3": 0.0,
+    "vol_high_km3": 0.0,
+    "mass_Gt": 0.0,
     "monte_carlo": {
       "n_draws": 1000,
-      "mean_km3": 3.492e-07,
-      "std_km3": 1.872e-07,
-      "p5_km3": 1.015e-07,
-      "p95_km3": 7.33e-07,
+      "mean_km3": 0.0,
+      "std_km3": 0.0,
+      "p5_km3": 0.0,
+      "p95_km3": 0.0,
       "cpr_noise_pct": 15,
       "samples": 1000
     }
   },
   "references": [
-    "Spudis et al. 2013 \u2014 Mini-RF CPR baseline",
-    "Fresnel reflection model \u2014 Nozette et al. 1996",
-    "Ice density 917 kg/m3 \u2014 CRC Handbook",
-    "Briefing formula chain: vol = area \u00d7 depth \u00d7 ice_fraction"
+    "Spudis et al. 2013 — Mini-RF CPR baseline",
+    "Fresnel reflection model — Nozette et al. 1996",
+    "Ice density 917 kg/m3 — CRC Handbook",
+    "Briefing formula chain: vol = area × depth × ice_fraction"
   ]
 }

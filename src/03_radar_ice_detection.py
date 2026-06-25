@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from utils.radar_utils import (lee_filter, compute_cpr, compute_dop,
                                  mchi_decomposition, compute_ice_probability)
 from utils.geo_utils import read_band, save_band, pixel_to_latlon
+from utils.dfsar_meta import load_dfsar_meta, data_quality_block
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROCESSED = os.path.join(ROOT, "data", "processed")
@@ -69,13 +70,29 @@ def run_ice_detection() -> dict:
     print(" LUNAR ICE PIPELINE — Step 3: Radar Ice Detection")
     print("=" * 60)
 
+    dfsar_meta = load_dfsar_meta(PROCESSED)
+    dq = data_quality_block(dfsar_meta)
+
     dfsar_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
     psr_path   = os.path.join(PROCESSED, "psr_mask.tif")
 
     if not os.path.exists(dfsar_path):
-        print(f"[ERROR] DFSAR not found: {dfsar_path}")
+        print(f"[ERROR] DFSAR Stokes not found: {dfsar_path}")
+        if dq.get("limitation_message"):
+            print(f"  Reason: {dq['limitation_message']}")
         print("  Run 01_data_ingestion.py first.")
-        return {}
+        print("  If you only have single-band amplitude, re-download ndxl decomposition "
+              "or LH/LV compact-pol products from PRADAN.")
+        return {"data_quality": dq}
+
+    if dq.get("synthetic"):
+        print("\n" + "!" * 70)
+        print("  *** SYNTHETIC DEMO DATA — ICE DETECTION IS NOT A REAL MEASUREMENT ***")
+        print(f"  {dq.get('limitation_message', '')}")
+        print("!" * 70 + "\n")
+    elif not dq.get("cpr_dop_detection_valid", True):
+        print(f"\n[WARNING] CPR/DOP detection flagged invalid: {dq.get('limitation_message')}\n")
+        return {"data_quality": dq}
 
     if not os.path.exists(psr_path):
         print(f"[WARNING] PSR mask not found: {psr_path}")
@@ -243,8 +260,13 @@ def run_ice_detection() -> dict:
         })
 
     geojson_path = os.path.join(EXPORTS, "ice_candidates.geojson")
+    geojson_doc = {
+        "type": "FeatureCollection",
+        "data_quality": dq,
+        "features": features,
+    }
     with open(geojson_path, "w") as f:
-        json.dump({"type": "FeatureCollection", "features": features}, f, indent=2)
+        json.dump(geojson_doc, f, indent=2)
     print(f"  Saved ice candidates: {geojson_path}")
 
     # ── Export CPR Histogram ──────────────────────────────────────────────────
@@ -253,6 +275,7 @@ def run_ice_detection() -> dict:
     hist, bin_edges = np.histogram(cpr_in_psr, bins=50, range=(0, 3))
     
     hist_data = {
+        "data_quality": dq,
         "x": [float((bin_edges[i] + bin_edges[i+1])/2) for i in range(len(hist))],
         "y": [int(v) for v in hist]
     }
@@ -268,6 +291,7 @@ def run_ice_detection() -> dict:
     print(" Next: run  python src/04_terrain_analysis.py")
 
     return {
+        "data_quality": dq,
         "cpr_map": cpr_path,
         "dop_map": dop_path,
         "mchi_rgb": mchi_path,

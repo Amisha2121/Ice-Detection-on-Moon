@@ -6,6 +6,7 @@ Usage:
   python src/run_pipeline.py                     # full pipeline
   python src/run_pipeline.py --steps 1 2 3       # only steps 1-3
   python src/run_pipeline.py --psr_positions 20  # fast PSR preview (20 sun positions)
+  python src/run_pipeline.py --synthetic-demo    # UI-only fake Stokes (NOT for judges)
 """
 
 import os
@@ -49,6 +50,11 @@ def main():
                         help="Steps to run (default: all 1-7)")
     parser.add_argument("--psr_positions", type=int, default=100,
                         help="Solar positions for PSR mapping (default 100, use 20 for fast preview)")
+    parser.add_argument(
+        "--synthetic-demo",
+        action="store_true",
+        help="Step 1 only: generate demo Stokes from single-band amplitude (UI testing, not science)",
+    )
     args = parser.parse_args()
 
     print("\n" + "="*70)
@@ -66,6 +72,8 @@ def main():
             continue
 
         extra = {}
+        if step == 1:
+            extra = {"synthetic_demo": args.synthetic_demo}
         if step == 2:
             extra = {"n_sun_positions": args.psr_positions}
 

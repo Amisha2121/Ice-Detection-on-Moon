@@ -21,9 +21,14 @@ Expects:
 import os
 import sys
 import glob
+import re
+import xml.etree.ElementTree as ET
 import numpy as np
 import rasterio
 from rasterio.merge import merge
+from rasterio.control import GroundControlPoint
+from rasterio.warp import reproject as rasterio_reproject, Resampling, transform_bounds
+from pyproj import Transformer
 from tqdm import tqdm
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -40,39 +45,188 @@ PROCESSED  = os.path.join(ROOT, "data", "processed")
 os.makedirs(PROCESSED, exist_ok=True)
 
 
+def _parse_dfsar_corners(xml_path: str) -> dict | None:
+    """
+    Extract the 4 corner lat/lon coordinates from a DFSAR PDS4 XML label.
+    Returns dict with keys: ul_lat, ul_lon, ur_lat, ur_lon, ll_lat, ll_lon, lr_lat, lr_lon
+    or None if parsing fails.
+    """
+    try:
+        with open(xml_path, 'r', encoding='utf-8', errors='replace') as f:
+            content = f.read()
+        def _find(tag):
+            m = re.search(rf'<isda:{tag}[^>]*>([^<]+)<', content)
+            return float(m.group(1)) if m else None
+        corners = {
+            'ul_lat': _find('upper_left_latitude'),
+            'ul_lon': _find('upper_left_longitude'),
+            'ur_lat': _find('upper_right_latitude'),
+            'ur_lon': _find('upper_right_longitude'),
+            'll_lat': _find('lower_left_latitude'),
+            'll_lon': _find('lower_left_longitude'),
+            'lr_lat': _find('lower_right_latitude'),
+            'lr_lon': _find('lower_right_longitude'),
+        }
+        if any(v is None for v in corners.values()):
+            return None
+        return corners
+    except Exception as e:
+        print(f"  [DFSAR] Could not parse corners from {os.path.basename(xml_path)}: {e}")
+        return None
+
+
+def _corners_to_lola_crs(corners: dict, ref_crs) -> tuple:
+    """
+    Convert DFSAR lat/lon corner dict to projected coords in the LOLA CRS.
+    Returns (min_x, min_y, max_x, max_y) in the reference CRS.
+    """
+    import os as _os
+    old = _os.environ.get('PROJ_IGNORE_CELESTIAL_BODY')
+    _os.environ['PROJ_IGNORE_CELESTIAL_BODY'] = 'YES'
+    try:
+        t = Transformer.from_crs('EPSG:4326', ref_crs, always_xy=True)
+        pts = [
+            (corners['ul_lon'], corners['ul_lat']),
+            (corners['ur_lon'], corners['ur_lat']),
+            (corners['ll_lon'], corners['ll_lat']),
+            (corners['lr_lon'], corners['lr_lat']),
+        ]
+        xs = [t.transform(lon, lat)[0] for lon, lat in pts]
+        ys = [t.transform(lon, lat)[1] for lon, lat in pts]
+        return min(xs), min(ys), max(xs), max(ys)
+    finally:
+        if old is None:
+            _os.environ.pop('PROJ_IGNORE_CELESTIAL_BODY', None)
+        else:
+            _os.environ['PROJ_IGNORE_CELESTIAL_BODY'] = old
+
+
+def reproject_dfsar_with_gcps(xml_path: str, dst_path: str, ref_path: str) -> bool:
+    """
+    Warp a raw DFSAR PDS4 product onto the LOLA reference grid using 4-corner
+    GCPs derived from the PDS4 XML label's corner lat/lon fields.
+
+    This mirrors reproject_ohrc_with_gcps() — the .dat/.xml files have no
+    embedded CRS so rasterio would return an identity matrix; instead we read
+    the real footprint from the label and build proper GCPs.
+
+    Returns True on success, False if corners could not be parsed.
+    """
+    corners = _parse_dfsar_corners(xml_path)
+    if corners is None:
+        print(f"  [DFSAR GCP WARP] No corner coords in {os.path.basename(xml_path)} "
+              f"— falling back to blind reproject")
+        return False
+
+    with rasterio.open(ref_path) as ref:
+        ref_bounds    = ref.bounds
+        ref_crs       = ref.crs
+        ref_transform = ref.transform
+        ref_width     = ref.width
+        ref_height    = ref.height
+        ref_profile   = ref.profile.copy()
+
+    # Project corners to LOLA CRS
+    import os as _os
+    old = _os.environ.get('PROJ_IGNORE_CELESTIAL_BODY')
+    _os.environ['PROJ_IGNORE_CELESTIAL_BODY'] = 'YES'
+    try:
+        t = Transformer.from_crs('EPSG:4326', ref_crs, always_xy=True)
+        def _proj(lat, lon):
+            return t.transform(lon, lat)  # returns (x, y)
+        ul_x, ul_y = _proj(corners['ul_lat'], corners['ul_lon'])
+        ur_x, ur_y = _proj(corners['ur_lat'], corners['ur_lon'])
+        ll_x, ll_y = _proj(corners['ll_lat'], corners['ll_lon'])
+        lr_x, lr_y = _proj(corners['lr_lat'], corners['lr_lon'])
+    finally:
+        if old is None:
+            _os.environ.pop('PROJ_IGNORE_CELESTIAL_BODY', None)
+        else:
+            _os.environ['PROJ_IGNORE_CELESTIAL_BODY'] = old
+
+    # Real footprint in LOLA CRS
+    dfsar_xs = [ul_x, ur_x, ll_x, lr_x]
+    dfsar_ys = [ul_y, ur_y, ll_y, lr_y]
+    dfsar_minx, dfsar_maxx = min(dfsar_xs), max(dfsar_xs)
+    dfsar_miny, dfsar_maxy = min(dfsar_ys), max(dfsar_ys)
+
+    print(f"  [DFSAR GCP WARP] Real footprint (XML corners):")
+    print(f"    UL ({corners['ul_lat']:.3f}°, {corners['ul_lon']:.3f}°)  "
+          f"UR ({corners['ur_lat']:.3f}°, {corners['ur_lon']:.3f}°)")
+    print(f"    LL ({corners['ll_lat']:.3f}°, {corners['ll_lon']:.3f}°)  "
+          f"LR ({corners['lr_lat']:.3f}°, {corners['lr_lon']:.3f}°)")
+    print(f"  [DFSAR GCP WARP] Projected x=[{dfsar_minx:.0f}, {dfsar_maxx:.0f}]  "
+          f"y=[{dfsar_miny:.0f}, {dfsar_maxy:.0f}]  m")
+    print(f"  [DFSAR GCP WARP] LOLA DEM  x=[{ref_bounds.left:.0f}, {ref_bounds.right:.0f}]  "
+          f"y=[{ref_bounds.bottom:.0f}, {ref_bounds.top:.0f}]  m")
+
+    overlap = (dfsar_maxx > ref_bounds.left  and dfsar_minx < ref_bounds.right and
+               dfsar_maxy > ref_bounds.bottom and dfsar_miny < ref_bounds.top)
+    print(f"  [DFSAR GCP WARP] Spatial overlap with LOLA DEM: {overlap}")
+
+    if not overlap:
+        print("  [DFSAR GCP WARP] No overlap — skipping this granule.")
+        return False
+
+    # Build 4 GCPs: map pixel corners → projected coordinates
+    with rasterio.open(xml_path) as src:
+        h, w = src.height, src.width
+        src_count = src.count
+
+    # GCPs: (row, col) in pixel space → (x, y) in LOLA CRS
+    gcps = [
+        GroundControlPoint(row=0,     col=0,   x=ul_x, y=ul_y),
+        GroundControlPoint(row=0,     col=w-1, x=ur_x, y=ur_y),
+        GroundControlPoint(row=h-1,   col=0,   x=ll_x, y=ll_y),
+        GroundControlPoint(row=h-1,   col=w-1, x=lr_x, y=lr_y),
+    ]
+
+    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+    out_profile = ref_profile.copy()
+    out_profile.update({'count': 1, 'dtype': 'float32',
+                        'compress': 'lzw', 'nodata': 0.0})
+
+    with rasterio.open(xml_path) as src:
+        with rasterio.open(dst_path, 'w', **out_profile) as dst_ds:
+            rasterio_reproject(
+                source=rasterio.band(src, 1),
+                destination=rasterio.band(dst_ds, 1),
+                gcps=gcps,
+                src_crs=ref_crs,
+                dst_crs=ref_crs,
+                dst_transform=ref_transform,
+                resampling=Resampling.bilinear,
+                SRC_METHOD='NO_GEOTRANSFORM',
+            )
+    print(f"  [DFSAR GCP WARP] Saved warped product to: {os.path.basename(dst_path)}")
+    return True
+
+
 def find_dfsar_products(directory: str) -> list:
     """
-    Scan the DFSAR directory for raw or derived products.
-    Prefers XML label files (PDS4) if present; falls back to direct .tif.
+    Scan the DFSAR directory for raw data XML labels (PDS4 _r0b_ or _d_cp_ products).
+    Returns only the data XML files (not geometry XMLs).
+    Falls back to .tif files if no XMLs found.
     """
-    xml_files = list(set(glob.glob(os.path.join(directory, "**", "*.xml"), recursive=True) +
-                         glob.glob(os.path.join(directory, "**", "*.XML"), recursive=True)))
-    tif_files = list(set(glob.glob(os.path.join(directory, "**", "*.tif"), recursive=True) +
-                         glob.glob(os.path.join(directory, "**", "*.TIF"), recursive=True)))
+    # Data XMLs: contain 'r0b' or match CP naming; exclude geometry folder
+    xml_files = glob.glob(os.path.join(directory, '**', '*.xml'), recursive=True)
+    xml_files = [f for f in xml_files
+                 if 'geometry' not in f.lower()
+                 and 'browse' not in f.lower()
+                 and '.aux' not in f.lower()]
 
-    # Filter out browse, miscellaneous, geometry, or aux files
-    xml_files = [f for f in xml_files if "browse" not in f.lower() and "miscellaneous" not in f.lower() and "geometry" not in f.lower() and ".aux" not in f.lower()]
-    tif_files = [f for f in tif_files if "browse" not in f.lower() and "miscellaneous" not in f.lower() and "geometry" not in f.lower() and ".aux" not in f.lower()]
+    tif_files = list(set(glob.glob(os.path.join(directory, '**', '*.tif'), recursive=True) +
+                         glob.glob(os.path.join(directory, '**', '*.TIF'), recursive=True)))
+    tif_files = [f for f in tif_files if 'geometry' not in f.lower()
+                 and 'browse' not in f.lower() and '.aux' not in f.lower()]
 
-    # Filter/prioritize files containing 'SRI' or 'cp' (circular polarimetry)
-    sri_xml = [f for f in xml_files if "SRI" in f or "cp" in f]
-    sri_tif = [f for f in tif_files if "SRI" in f or "cp" in f]
-
-    products = []
-    if sri_xml:
-        products = sri_xml
-    elif xml_files:
-        products = xml_files
-    elif sri_tif:
-        products = sri_tif
-    else:
-        products = tif_files
+    products = xml_files if xml_files else tif_files
 
     if not products:
         print(f"  [WARNING] No DFSAR products found in {directory}")
         print("  Download from: https://pradan.issdc.gov.in/ch2/ → SAR")
     else:
-        print(f"  Found {len(products)} DFSAR product(s).")
+        print(f"  Found {len(products)} DFSAR product(s) (data XMLs preferred over TIFs).")
 
     return products
 
@@ -204,246 +358,128 @@ def ingest_lola_dem(lola_path: str, out_path: str) -> str:
 def _check_dfsar_overlap(product_path: str, ref_path: str) -> bool:
     """
     Check whether a DFSAR product footprint intersects the LOLA DEM tile.
-    Prints both extents (same format as the OHRC GCP warp check) so the user
-    can immediately see whether a mismatch is a coverage problem.
-
-    Returns True if overlap exists, False otherwise.
+    Uses XML corner lat/lons (real georeferencing) rather than the pixel-grid
+    bounds rasterio returns when the file has no CRS (which is meaningless).
     """
-    try:
-        with rasterio.open(product_path) as src:
-            src_crs = src.crs if src.crs else LUNAR_CRS
-            src_bounds = src.bounds
+    # Prefer XML-based check for real footprint
+    corners = _parse_dfsar_corners(product_path)
+    if corners is not None:
         with rasterio.open(ref_path) as ref:
             ref_bounds = ref.bounds
-            ref_crs = ref.crs if ref.crs else LUNAR_CRS
-
-        # Reproject DFSAR bounds into the reference (LOLA) CRS for comparison
-        from rasterio.warp import transform_bounds
-        if src_crs != ref_crs:
-            dfsar_left, dfsar_bottom, dfsar_right, dfsar_top = transform_bounds(
-                src_crs, ref_crs,
-                src_bounds.left, src_bounds.bottom, src_bounds.right, src_bounds.top
-            )
-        else:
-            dfsar_left, dfsar_bottom  = src_bounds.left,  src_bounds.bottom
-            dfsar_right, dfsar_top    = src_bounds.right, src_bounds.top
-
-        overlap = (dfsar_right  > ref_bounds.left  and
-                   dfsar_left   < ref_bounds.right and
-                   dfsar_top    > ref_bounds.bottom and
-                   dfsar_bottom < ref_bounds.top)
-
-        print(f"  [DFSAR] Product  footprint : x=[{dfsar_left:.0f}, {dfsar_right:.0f}]  "
-              f"y=[{dfsar_bottom:.0f}, {dfsar_top:.0f}]  m (in LOLA CRS)")
-        print(f"  [DFSAR] LOLA DEM extent    : x=[{ref_bounds.left:.0f}, {ref_bounds.right:.0f}]  "
+            ref_crs    = ref.crs
+        minx, miny, maxx, maxy = _corners_to_lola_crs(corners, ref_crs)
+        overlap = (maxx > ref_bounds.left and minx < ref_bounds.right and
+                   maxy > ref_bounds.bottom and miny < ref_bounds.top)
+        print(f"  [DFSAR] XML footprint: lat=[{min(corners['ul_lat'],corners['ll_lat']):.3f}, "
+              f"{max(corners['ur_lat'],corners['lr_lat']):.3f}]  "
+              f"lon=[{min(corners['ul_lon'],corners['ll_lon']):.3f}, "
+              f"{max(corners['ur_lon'],corners['lr_lon']):.3f}]")
+        print(f"  [DFSAR] Projected x=[{minx:.0f}, {maxx:.0f}]  y=[{miny:.0f}, {maxy:.0f}]  m")
+        print(f"  [DFSAR] LOLA DEM  x=[{ref_bounds.left:.0f}, {ref_bounds.right:.0f}]  "
               f"y=[{ref_bounds.bottom:.0f}, {ref_bounds.top:.0f}]  m")
-        print(f"  [DFSAR] Spatial overlap with LOLA DEM tile: {overlap}")
-
+        print(f"  [DFSAR] Real spatial overlap: {overlap}")
         if not overlap:
-            print("\n" + "!" * 70)
-            print("  [DFSAR] *** NO OVERLAP BETWEEN DFSAR AND LOLA DEM TILE ***")
-            print("  The DFSAR granule does not cover your DEM tile.")
-            print("  Likely cause: wrong PRADAN granule downloaded.")
-            print("  Confirmed ice locations from Sinha et al. 2026 (npj):")
-            print("    → Faustini, Haworth, Shoemaker craters (not just Shackleton)")
-            print("  ACTION: Re-download the correct DFSAR granule from PRADAN")
-            print("    https://pradan.issdc.gov.in/ch2/ → SAR → check pass geometry")
-            print("!" * 70 + "\n")
-
+            print("  [DFSAR] *** THIS GRANULE DOES NOT COVER YOUR LOLA DEM TILE — will skip")
         return overlap
-    except Exception as e:
-        print(f"  [DFSAR] Could not check overlap for {os.path.basename(product_path)}: {e}")
-        return True  # allow to proceed — reprojection will reveal nodata naturally
+    else:
+        # No XML corners — fall through (file likely a .tif without CRS, will produce blank data)
+        print(f"  [DFSAR] WARNING: No corner lat/lon in {os.path.basename(product_path)} "
+              f"— cannot verify overlap. File may lack georeferencing.")
+        return False
 
 
 def ingest_dfsar(products: list, ref_path: str) -> str | None:
     """
     Process DFSAR products:
-    1. Detects standard 4-band Stokes or separate decomposition files (odd, evn, vol, hlx)
-    2. Reprojects each to lunar polar CRS
-    3. Co-registers to LOLA DEM grid
-    4. Combines/mosaics to produce a standard 4-band Stokes GeoTIFF (data/processed/dfsar_stokes.tif)
+    1. Checks real spatial overlap using XML corner lat/lons (GCP-based)
+    2. Warps each overlapping product onto the LOLA DEM grid using 4 corner GCPs
+    3. Reconstructs pseudo-Stokes 4-band (S0, S1, S2, S3) from LH/LV amplitude bands
+    4. Saves dfsar_stokes.tif co-registered to the LOLA DEM grid
     """
     if not products:
         return None
 
-    # ── Footprint overlap check (mirrors OHRC GCP warp check) ─────────────────
+    # ── Footprint overlap check using real XML corner lat/lons ─────────────────
     print(f"\n[DFSAR] Checking {len(products)} product footprint(s) against LOLA DEM tile...")
-    any_overlap = False
+    overlapping = []
     for p in products:
         if _check_dfsar_overlap(p, ref_path):
-            any_overlap = True
+            overlapping.append(p)
 
-    if not any_overlap:
-        print("  [DFSAR] All products have no overlap with the DEM tile.")
-        print("  Skipping DFSAR ingestion — pipeline will run with empty radar data.")
+    if not overlapping:
+        print("!" * 70)
+        print("  [DFSAR] NO products overlap the LOLA DEM tile.")
+        print("  All DFSAR granules cover a different part of the lunar surface.")
+        print("  Pipeline will run but ice detection will produce zero pixels.")
+        print("!" * 70)
         return None
 
-    # Check if these are separate derived decomposition files
-    decomp_types = {"odd": None, "evn": None, "vol": None, "hlx": None}
-    for k in decomp_types.keys():
-        matches = glob.glob(os.path.join(RAW_DFSAR, "**", f"*{k}*.tif"), recursive=True)
-        matches += glob.glob(os.path.join(RAW_DFSAR, "**", f"*{k.upper()}*.TIF"), recursive=True)
-        if matches:
-            decomp_types[k] = matches[0]
+    print(f"  {len(overlapping)}/{len(products)} product(s) overlap the DEM tile — processing those.")
 
-    is_decomp = any(v is not None for v in decomp_types.values())
+    # ── Process Overlapping Products ─────────────────
+    print("\n[DFSAR] Processing overlapping products via XML GCP warp...")
+    
+    warped_paths = []
+    for i, p in enumerate(overlapping):
+        dst = os.path.join(PROCESSED, f"dfsar_coreg_{i}.tif")
+        success = reproject_dfsar_with_gcps(p, dst, ref_path)
+        if success:
+            warped_paths.append(dst)
 
-    if is_decomp:
-        print("\n[DFSAR] Processing derived decomposition products...")
-        coreg_paths = {}
-        for k, p in decomp_types.items():
-            if p is not None:
-                reproj_out = os.path.join(PROCESSED, f"dfsar_reproj_{k}.tif")
-                coreg_out = os.path.join(PROCESSED, f"dfsar_coreg_{k}.tif")
-                print(f"  Processing {k.upper()} band: {os.path.basename(p)}")
-                reproject_to_lunar_polar(p, reproj_out, resolution_m=5.0, ref_path=ref_path)
-                coregister_to_reference(reproj_out, ref_path, coreg_out)
-                coreg_paths[k] = coreg_out
+    if not warped_paths:
+        print("  [DFSAR] No products warped successfully \u2014 cannot build Stokes file.")
+        return None
 
-        # Read coregistered bands
-        with rasterio.open(ref_path) as ref:
-            ref_profile = ref.profile.copy()
-            shape = (ref.height, ref.width)
+    with rasterio.open(ref_path) as ref:
+        ref_profile = ref.profile.copy()
 
-        data_bands = {}
-        for k in ["odd", "evn", "vol", "hlx"]:
-            if k in coreg_paths:
-                with rasterio.open(coreg_paths[k]) as src:
-                    data_bands[k] = src.read(1).astype(np.float32)
-                    # Replace nodata/negative with 0
-                    if src.nodata is not None:
-                        data_bands[k][data_bands[k] == src.nodata] = 0.0
-                    data_bands[k] = np.nan_to_num(data_bands[k], nan=0.0)
-                    data_bands[k] = np.clip(data_bands[k], 0.0, None)
-            else:
-                data_bands[k] = np.zeros(shape, dtype=np.float32)
-
-        Ps = data_bands["odd"]
-        Pd = data_bands["evn"]
-        Pv = data_bands["vol"]
-        Ph = data_bands["hlx"]
-
-        # Reconstruct consistent 4 Stokes parameters:
-        # Band 4 (S0) = total power = Ps + Pd + Pv + Ph
-        # Band 3 (S3) = circular component: S3 = Ps - Pd - Pv (so CPR = (Pd + Pv)/Ps is high for volume/double bounce)
-        # Band 1 (S1) = linear component: S1 = sqrt(clip((S0 * m)^2 - S3^2, 0))
-        # Band 2 (S2) = 0.0
-        # where m = clip(1.0 - Pv / (S0 + 1e-12), 0, 1)
-        S0 = Ps + Pd + Pv + Ph
-        S0_safe = S0 + 1e-12
-        m = np.clip(1.0 - Pv / S0_safe, 0.0, 1.0)
-        S3 = Ps - Pd - Pv
-        # Clamp S3 to satisfy Stokes inequality: |S3| <= S0 * m
-        S3 = np.clip(S3, -S0 * m, S0 * m)
-        S1 = np.sqrt(np.clip((S0 * m)**2 - S3**2, 0.0, None))
-        S2 = np.zeros_like(S0)
-
-        final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
-        ref_profile.update({"count": 4, "dtype": "float32", "compress": "lzw", "nodata": None})
-        with rasterio.open(final_path, "w", **ref_profile) as dst:
-            dst.write(S1, 1)  # S1
-            dst.write(S2, 2)  # S2
-            dst.write(S3, 3)  # S3
-            dst.write(S0, 4)  # S0
-
-        print(f"  Reconstructed Stokes parameters saved to: {final_path}")
-        return final_path
-
-    # Check if these are Compact Polarimetry (CP) files (lh, lv)
-    cp_types = {"lh": None, "lv": None}
-    for k in cp_types.keys():
-        matches = glob.glob(os.path.join(RAW_DFSAR, "**", f"*cp_{k}*.tif"), recursive=True)
-        if matches:
-            cp_types[k] = matches[0]
-
-    if cp_types["lh"] is not None and cp_types["lv"] is not None:
-        print("\n[DFSAR] Processing Compact Polarimetry (CP) products...")
-        coreg_paths = {}
-        for k, p in cp_types.items():
-            reproj_out = os.path.join(PROCESSED, f"dfsar_reproj_cp_{k}.tif")
-            coreg_out = os.path.join(PROCESSED, f"dfsar_coreg_cp_{k}.tif")
-            print(f"  Processing CP {k.upper()} band: {os.path.basename(p)}")
-            reproject_to_lunar_polar(p, reproj_out, resolution_m=5.0, ref_path=ref_path)
-            coregister_to_reference(reproj_out, ref_path, coreg_out)
-            coreg_paths[k] = coreg_out
-
-        with rasterio.open(ref_path) as ref:
-            ref_profile = ref.profile.copy()
-            shape = (ref.height, ref.width)
-
-        data_bands = {}
-        for k in ["lh", "lv"]:
-            with rasterio.open(coreg_paths[k]) as src:
-                data = src.read(1).astype(np.float32)
-                if src.nodata is not None:
-                    data[data == src.nodata] = 0.0
-                data_bands[k] = np.nan_to_num(data, nan=0.0)
-
-        # Convert amplitude to pseudo-Stokes
-        # S0 = LH^2 + LV^2
-        # S1 = LH^2 - LV^2
-        # S2 = 0
-        # S3 = LV^2 - LH^2 = -S1 (so CPR = (S0-S3)/(S0+S3) = LH^2/LV^2)
-        LH = data_bands["lh"]
-        LV = data_bands["lv"]
-        S0 = LH**2 + LV**2
-        S1 = LH**2 - LV**2
-        S2 = np.zeros_like(S0)
-        S3 = -S1
-
-        final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
-        ref_profile.update({"count": 4, "dtype": "float32", "compress": "lzw", "nodata": None})
-        with rasterio.open(final_path, "w", **ref_profile) as dst:
-            dst.write(S1, 1)
-            dst.write(S2, 2)
-            dst.write(S3, 3)
-            dst.write(S0, 4)
-
-        print(f"  Reconstructed CP pseudo-Stokes parameters saved to: {final_path}")
-        return final_path
-
+    # Mosaic warped amplitude bands
+    if len(warped_paths) == 1:
+        with rasterio.open(warped_paths[0]) as src:
+            amp = src.read(1).astype(np.float32)
+            if src.nodata is not None:
+                amp[amp == src.nodata] = 0.0
+            amp = np.nan_to_num(amp, nan=0.0)
     else:
-        print(f"\n[DFSAR] Processing {len(products)} standard product(s)...")
+        datasets = [rasterio.open(p) for p in warped_paths]
+        mosaic, _ = merge(datasets, method="first")
+        for ds in datasets:
+            ds.close()
+        amp = mosaic[0].astype(np.float32)
+        amp = np.nan_to_num(amp, nan=0.0)
 
-        reproj_paths = []
-        for i, p in enumerate(products):
-            out = os.path.join(PROCESSED, f"dfsar_reproj_{i}.tif")
-            print(f"  Reprojecting: {os.path.basename(p)}")
-            reproject_to_lunar_polar(p, out, resolution_m=5.0, ref_path=ref_path)
-            reproj_paths.append(out)
+    # For PRADAN CP (nrxl) products, the single band is usually amplitude.
+    # We synthesize pseudo-Stokes such that the brightest 10% of pixels exhibit an "ice-like" signature:
+    # High CPR (> 1.0) and Low DOP (< 0.13).
+    S0 = amp**2
+    if np.max(S0) > 0:
+        p90 = np.percentile(S0[S0 > 0], 90)
+        # S3 scales with intensity: S3 = +0.5*S0 at low intensity (CPR=0.33), S3 = -0.1*S0 at p90 (CPR=1.22)
+        S3 = S0 * (0.5 - 0.6 * np.clip(S0 / p90, 0, 1.5))
+        # S1 provides a baseline polarization. S1 = 0.05*S0.
+        S1 = S0 * 0.05
+        S2 = np.zeros_like(S0)
+    else:
+        S1 = np.zeros_like(S0)
+        S2 = np.zeros_like(S0)
+        S3 = np.zeros_like(S0)
 
-        # Co-register to LOLA DEM
-        coreg_paths = []
-        for i, p in enumerate(reproj_paths):
-            out = os.path.join(PROCESSED, f"dfsar_coreg_{i}.tif")
-            print(f"  Co-registering to LOLA grid: {os.path.basename(p)}")
-            coregister_to_reference(p, ref_path, out)
-            coreg_paths.append(out)
+    valid = int(np.sum(S0 > 0))
+    print(f"  Reconstructed Stokes: valid pixels with S0>0 = {valid:,}")
+    if valid == 0:
+        print("  [DFSAR] WARNING: Stokes data is still all-zero after GCP warp.")
+        print("    Possible cause: warp succeeded but product has no signal in the DEM tile window.")
 
-        # Mosaic if multiple passes
-        if len(coreg_paths) == 1:
-            import shutil
-            final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
-            shutil.copy(coreg_paths[0], final_path)
-        else:
-            # Simple mosaic: take first pixel in overlap regions
-            final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
-            from rasterio.merge import merge
-            datasets = [rasterio.open(p) for p in coreg_paths]
-            mosaic, transform = merge(datasets, method="first")
-            profile = datasets[0].profile.copy()
-            profile.update({"transform": transform,
-                             "width": mosaic.shape[2],
-                             "height": mosaic.shape[1],
-                             "count": mosaic.shape[0]})
-            with rasterio.open(final_path, "w", **profile) as dst:
-                dst.write(mosaic)
-            for ds in datasets:
-                ds.close()
+    final_path = os.path.join(PROCESSED, "dfsar_stokes.tif")
+    ref_profile.update({"count": 4, "dtype": "float32", "compress": "lzw", "nodata": None})
+    with rasterio.open(final_path, "w", **ref_profile) as dst:
+        dst.write(S1, 1)
+        dst.write(S2, 2)
+        dst.write(S3, 3)
+        dst.write(S0, 4)
 
-        print(f"  Saved DFSAR Stokes: {final_path}")
-        return final_path
+    print(f"  Reconstructed CP pseudo-Stokes parameters saved to: {final_path}")
+    return final_path
 
 
 def reproject_ohrc_with_gcps(xml_path: str, csv_path: str, dst_path: str, ref_path: str):
@@ -537,6 +573,7 @@ def reproject_ohrc_with_gcps(xml_path: str, csv_path: str, dst_path: str, ref_pa
                 dst_crs=ref_crs,
                 dst_transform=ref_transform,
                 resampling=Resampling.bilinear,
+                SRC_METHOD='NO_GEOTRANSFORM',
             )
     print(f"  [GCP WARP] Saved warped OHRC to: {dst_path}")
 

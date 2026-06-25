@@ -235,7 +235,7 @@ def run_terrain_analysis() -> dict:
     }
 
     stats_path = os.path.join(EXPORTS, "terrain_stats.json")
-    with open(stats_path, "w") as f:
+    with open(stats_path, "w", encoding='utf-8') as f:
         json.dump(stats, f, indent=2)
     print(f"\n  Terrain stats: {stats_path}")
 

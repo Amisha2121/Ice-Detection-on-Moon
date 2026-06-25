@@ -187,7 +187,7 @@ def main():
         "east":  g_bounds[2],
         "north": g_bounds[3],
     }
-    with open(meta_path, "w") as f:
+    with open(meta_path, "w", encoding='utf-8') as f:
         json.dump(meta, f, indent=2)
     print(f"\n  ✓ meta.json updated")
 

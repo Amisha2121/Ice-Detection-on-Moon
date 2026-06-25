@@ -310,11 +310,11 @@ def run_rover_traverse() -> dict:
     print("\n[4/4] Exporting traverse path...")
 
     traverse_path = os.path.join(EXPORTS, "traverse_path.geojson")
-    with open(traverse_path, "w") as f:
+    with open(traverse_path, "w", encoding='utf-8') as f:
         json.dump({"type": "FeatureCollection", "features": all_features}, f, indent=2)
 
     waypoints_path = os.path.join(EXPORTS, "traverse_waypoints.json")
-    with open(waypoints_path, "w") as f:
+    with open(waypoints_path, "w", encoding='utf-8') as f:
         json.dump({
             "total_distance_km": round(total_distance / 1000, 2),
             "n_segments": len(all_features),

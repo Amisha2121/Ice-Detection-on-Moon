@@ -176,7 +176,7 @@ meta = {
         "hazard_overlay.png",
     ]
 }
-with open(os.path.join(OUT_DIR, "meta.json"), "w") as f:
+with open(os.path.join(OUT_DIR, "meta.json"), "w", encoding='utf-8') as f:
     json.dump(meta, f, indent=2)
 print("  ✓ meta.json")
 

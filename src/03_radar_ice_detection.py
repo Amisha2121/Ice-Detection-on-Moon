@@ -265,7 +265,7 @@ def run_ice_detection() -> dict:
         "data_quality": dq,
         "features": features,
     }
-    with open(geojson_path, "w") as f:
+    with open(geojson_path, "w", encoding='utf-8') as f:
         json.dump(geojson_doc, f, indent=2)
     print(f"  Saved ice candidates: {geojson_path}")
 
@@ -279,7 +279,7 @@ def run_ice_detection() -> dict:
         "x": [float((bin_edges[i] + bin_edges[i+1])/2) for i in range(len(hist))],
         "y": [int(v) for v in hist]
     }
-    with open(os.path.join(EXPORTS, "cpr_histogram.json"), "w") as f:
+    with open(os.path.join(EXPORTS, "cpr_histogram.json"), "w", encoding='utf-8') as f:
         json.dump(hist_data, f, indent=2)
 
     print("\n" + "=" * 60)

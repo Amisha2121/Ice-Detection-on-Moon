@@ -299,7 +299,7 @@ def run_landing_site_selection() -> dict:
         print(f"    Distance to ice: {dist_to_ice/1000:.2f} km")
 
     geojson_path = os.path.join(EXPORTS, "landing_sites.geojson")
-    with open(geojson_path, "w") as f:
+    with open(geojson_path, "w", encoding='utf-8') as f:
         json.dump({"type": "FeatureCollection", "features": features}, f, indent=2)
     print(f"\n  Saved landing sites: {geojson_path}")
 

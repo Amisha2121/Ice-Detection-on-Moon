@@ -129,7 +129,7 @@ def run_psr_mapping(n_sun_positions: int = 100) -> dict:
         })
 
     geojson_path = os.path.join(EXPORTS, "dsc_locations.geojson")
-    with open(geojson_path, "w") as f:
+    with open(geojson_path, "w", encoding='utf-8') as f:
         json.dump({"type": "FeatureCollection", "features": geojson_features}, f, indent=2)
     print(f"  Saved DSC locations: {geojson_path}")
 

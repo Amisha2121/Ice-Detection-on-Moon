@@ -202,7 +202,7 @@ def run_ice_volume_estimation() -> dict:
     }
 
     report_path = os.path.join(EXPORTS, "ice_volume_report.json")
-    with open(report_path, "w") as f:
+    with open(report_path, "w", encoding='utf-8') as f:
         json.dump(report, f, indent=2)
     print(f"\n  Full report saved: {report_path}")
 

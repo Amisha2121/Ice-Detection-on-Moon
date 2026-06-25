@@ -38,6 +38,7 @@ const STATE = {
   map:    null,
   meta:   null,
   layers: {},
+  aoiBounds: null,  // Store AOI bounds for zoom button
   traverseWaypoints: [],
   traverseIndex: 0,
   traverseTimer: null,
@@ -126,6 +127,33 @@ async function initMap() {
   const m = STATE.meta.bounds;
   // Leaflet expects [lat, lng] which maps to [y, x] in L.CRS.Simple
   const shkImgBounds = [[m.south, m.west], [m.north, m.east]];
+  STATE.aoiBounds = shkImgBounds;  // Store for zoom button
+
+  // ── Global context basemap (6000×6000 km south polar region) ────────────
+  if (STATE.meta.global_basemap) {
+    const gb = STATE.meta.global_basemap;
+    const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
+    
+    // Add global context layer (lower opacity so AOI tile stands out)
+    L.imageOverlay(CFG.overlayDir + 'global_basemap.png', globalBounds, {
+      opacity: 0.5, interactive: false, zIndex: 0,
+    }).addTo(STATE.map);
+    
+    // Draw a red rectangle showing the AOI tile location within the global context
+    const aoiRect = L.rectangle(shkImgBounds, {
+      color: '#ef4444',
+      weight: 2,
+      fillOpacity: 0,
+      dashArray: '5, 5',
+      interactive: false,
+      zIndex: 100,
+    }).addTo(STATE.map);
+    aoiRect.bindTooltip('16×16 km Analysis Area (Shackleton)', { 
+      permanent: false, 
+      direction: 'top',
+      className: 'dark-tooltip'
+    });
+  }
 
   // ── Basemap: High-res LOLA DEM hillshade for Shackleton ─────────────────
   L.imageOverlay(CFG.overlayDir + 'dem_hillshade.png', shkImgBounds, {
@@ -171,8 +199,18 @@ async function initMap() {
     }
   });
 
-  STATE.map.fitBounds(shkImgBounds);
-  STATE.map.setMaxBounds(shkImgBounds);
+  // Initial view: if global basemap exists, show full south polar context first
+  // Otherwise zoom directly to AOI tile
+  if (STATE.meta.global_basemap) {
+    const gb = STATE.meta.global_basemap;
+    const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
+    STATE.map.fitBounds(globalBounds);
+    // Set max bounds to global extent (allow panning the full south pole)
+    STATE.map.setMaxBounds(globalBounds);
+  } else {
+    STATE.map.fitBounds(shkImgBounds);
+    STATE.map.setMaxBounds(shkImgBounds);
+  }
   STATE.map.options.maxBoundsViscosity = 1.0;
 
   // Coordinate readout (pixel → approx metres)
@@ -652,6 +690,7 @@ function addLegend() {
       'padding:8px 12px;font-size:11px;color:#7eb8e8;line-height:1.6;backdrop-filter:blur(6px);';
     div.innerHTML = `
       <b style="color:#22d3ee">Map Layers</b><br>
+      <span style="display:inline-block;width:12px;height:2px;background:#ef4444;border-radius:1px;vertical-align:middle"></span> 16×16 km AOI<br>
       <span style="display:inline-block;width:12px;height:12px;background:rgba(0,0,180,0.6);border-radius:2px;vertical-align:middle"></span> PSR (shadow)<br>
       <span style="display:inline-block;width:12px;height:12px;background:linear-gradient(90deg,#0f0,#f00);border-radius:2px;vertical-align:middle"></span> Ice Prob.<br>
       <span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:2px;vertical-align:middle"></span> Traverse<br>
@@ -675,6 +714,15 @@ async function init() {
 
   initThresholdControls();
   addLegend();
+
+  // Zoom to AOI button handler
+  const zoomBtn = document.getElementById('btn-zoom-aoi');
+  if (zoomBtn && STATE.aoiBounds) {
+    zoomBtn.addEventListener('click', () => {
+      STATE.map.fitBounds(STATE.aoiBounds);
+      toast('Zoomed to 16×16 km analysis area', 1500);
+    });
+  }
 
   const results = await Promise.allSettled([
     loadIceCandidates(),

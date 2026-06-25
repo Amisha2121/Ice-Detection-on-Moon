@@ -392,6 +392,32 @@ html, body {
   pointer-events: none;
 }
 
+.zoom-aoi-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 500;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
+  transition: all 0.2s ease;
+}
+
+.zoom-aoi-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+}
+
+.zoom-aoi-btn:active {
+  transform: translateY(0);
+}
+
 /* ── Right Panel Analytics ───────────────────────────────────────────────── */
 .volume-stats {
   display: flex;

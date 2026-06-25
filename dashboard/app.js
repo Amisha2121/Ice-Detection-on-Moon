@@ -137,12 +137,13 @@ async function initMap() {
   console.log('[Init] AOI bounds:', shkImgBounds);
 
   // ── Global context basemap (south polar region) ─────────────────────────
+  // TEMPORARILY DISABLED - causing coordinate mismatch
+  // Will re-enable after fixing the basemap generation
+  /*
   if (STATE.meta.global_basemap) {
     const gb = STATE.meta.global_basemap;
     const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
     
-    // Add global context layer with proper bounds from meta.json
-    // This layer is LOW-RESOLUTION (5.9 km/pixel) — only honest at wide zoom
     const globalLayer = L.imageOverlay(CFG.overlayDir + 'global_basemap.png', globalBounds, {
       opacity: 0.6,
       interactive: false,
@@ -152,13 +153,11 @@ async function initMap() {
     globalLayer.addTo(STATE.map);
     STATE.layers.globalContext = globalLayer;
     
-    // Apply CSS filter for better visibility (needs to wait for image to load)
     globalLayer.on('load', function() {
       const img = this.getElement();
       if (img) img.style.filter = 'brightness(1.4) contrast(1.3)';
     });
     
-    // Draw a red rectangle showing the AOI tile location within the context
     const aoiRect = L.rectangle(shkImgBounds, {
       color: '#ef4444',
       weight: 3,
@@ -173,10 +172,6 @@ async function initMap() {
       className: 'dark-tooltip'
     });
     
-    // Zoom-dependent opacity: fade out global layer when zoomed in past its native resolution
-    // Global layer: ~5,859 m/pixel native resolution
-    // AOI layer: ~15.6 m/pixel native resolution
-    // At zoom > -2, the global layer is being upsampled beyond its honest detail
     const GLOBAL_LAYER_MAX_ZOOM = -2;
     const updateGlobalLayerOpacity = () => {
       const z = STATE.map.getZoom();
@@ -186,36 +181,32 @@ async function initMap() {
       }
       console.log(`[Map Zoom] Current zoom: ${z.toFixed(2)}, Threshold: ${GLOBAL_LAYER_MAX_ZOOM}`);
       if (z > GLOBAL_LAYER_MAX_ZOOM) {
-        // Zoomed in past global layer's native resolution — fade it out
         console.log('  -> Hiding global context layer (too zoomed in)');
         globalLayer.setOpacity(0);
       } else {
-        // Wide view — show context layer
         console.log('  -> Showing global context layer');
         globalLayer.setOpacity(0.6);
       }
     };
     
     STATE.map.on('zoomend', updateGlobalLayerOpacity);
-    // Wait for map to be ready before calling update
     STATE.map.whenReady(() => {
       console.log('[Map] Map is ready, setting initial zoom opacity');
       updateGlobalLayerOpacity();
     });
     
-    // Start with a reasonable view showing the AOI in context
-    // Zoom to show ~200km around the AOI (compromise between full global and just AOI)
     const centerLat = (shkImgBounds[0][0] + shkImgBounds[1][0]) / 2;
     const centerLng = (shkImgBounds[0][1] + shkImgBounds[1][1]) / 2;
-    const contextRadius = 100000; // 100km padding around AOI
+    const contextRadius = 100000;
     const contextView = [
       [centerLat - contextRadius, centerLng - contextRadius],
       [centerLat + contextRadius, centerLng + contextRadius]
     ];
     
     STATE.map.fitBounds(contextView);
-    STATE.map.setMaxBounds(globalBounds); // Allow panning full global area
-  } else {
+    STATE.map.setMaxBounds(globalBounds);
+  } else */ {
+    // Just show the AOI without global context
     STATE.map.fitBounds(shkImgBounds);
     STATE.map.setMaxBounds(shkImgBounds);
   }

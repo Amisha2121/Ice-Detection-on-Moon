@@ -201,6 +201,61 @@ def ingest_lola_dem(lola_path: str, out_path: str) -> str:
     return out_path
 
 
+def _check_dfsar_overlap(product_path: str, ref_path: str) -> bool:
+    """
+    Check whether a DFSAR product footprint intersects the LOLA DEM tile.
+    Prints both extents (same format as the OHRC GCP warp check) so the user
+    can immediately see whether a mismatch is a coverage problem.
+
+    Returns True if overlap exists, False otherwise.
+    """
+    try:
+        with rasterio.open(product_path) as src:
+            src_crs = src.crs if src.crs else LUNAR_CRS
+            src_bounds = src.bounds
+        with rasterio.open(ref_path) as ref:
+            ref_bounds = ref.bounds
+            ref_crs = ref.crs if ref.crs else LUNAR_CRS
+
+        # Reproject DFSAR bounds into the reference (LOLA) CRS for comparison
+        from rasterio.warp import transform_bounds
+        if src_crs != ref_crs:
+            dfsar_left, dfsar_bottom, dfsar_right, dfsar_top = transform_bounds(
+                src_crs, ref_crs,
+                src_bounds.left, src_bounds.bottom, src_bounds.right, src_bounds.top
+            )
+        else:
+            dfsar_left, dfsar_bottom  = src_bounds.left,  src_bounds.bottom
+            dfsar_right, dfsar_top    = src_bounds.right, src_bounds.top
+
+        overlap = (dfsar_right  > ref_bounds.left  and
+                   dfsar_left   < ref_bounds.right and
+                   dfsar_top    > ref_bounds.bottom and
+                   dfsar_bottom < ref_bounds.top)
+
+        print(f"  [DFSAR] Product  footprint : x=[{dfsar_left:.0f}, {dfsar_right:.0f}]  "
+              f"y=[{dfsar_bottom:.0f}, {dfsar_top:.0f}]  m (in LOLA CRS)")
+        print(f"  [DFSAR] LOLA DEM extent    : x=[{ref_bounds.left:.0f}, {ref_bounds.right:.0f}]  "
+              f"y=[{ref_bounds.bottom:.0f}, {ref_bounds.top:.0f}]  m")
+        print(f"  [DFSAR] Spatial overlap with LOLA DEM tile: {overlap}")
+
+        if not overlap:
+            print("\n" + "!" * 70)
+            print("  [DFSAR] *** NO OVERLAP BETWEEN DFSAR AND LOLA DEM TILE ***")
+            print("  The DFSAR granule does not cover your DEM tile.")
+            print("  Likely cause: wrong PRADAN granule downloaded.")
+            print("  Confirmed ice locations from Sinha et al. 2026 (npj):")
+            print("    → Faustini, Haworth, Shoemaker craters (not just Shackleton)")
+            print("  ACTION: Re-download the correct DFSAR granule from PRADAN")
+            print("    https://pradan.issdc.gov.in/ch2/ → SAR → check pass geometry")
+            print("!" * 70 + "\n")
+
+        return overlap
+    except Exception as e:
+        print(f"  [DFSAR] Could not check overlap for {os.path.basename(product_path)}: {e}")
+        return True  # allow to proceed — reprojection will reveal nodata naturally
+
+
 def ingest_dfsar(products: list, ref_path: str) -> str | None:
     """
     Process DFSAR products:
@@ -210,6 +265,18 @@ def ingest_dfsar(products: list, ref_path: str) -> str | None:
     4. Combines/mosaics to produce a standard 4-band Stokes GeoTIFF (data/processed/dfsar_stokes.tif)
     """
     if not products:
+        return None
+
+    # ── Footprint overlap check (mirrors OHRC GCP warp check) ─────────────────
+    print(f"\n[DFSAR] Checking {len(products)} product footprint(s) against LOLA DEM tile...")
+    any_overlap = False
+    for p in products:
+        if _check_dfsar_overlap(p, ref_path):
+            any_overlap = True
+
+    if not any_overlap:
+        print("  [DFSAR] All products have no overlap with the DEM tile.")
+        print("  Skipping DFSAR ingestion — pipeline will run with empty radar data.")
         return None
 
     # Check if these are separate derived decomposition files

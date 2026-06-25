@@ -114,9 +114,17 @@ def run_ice_detection() -> dict:
 
     # Check if DFSAR stokes bands are empty/all NaNs (no overlap situation)
     valid_count = np.sum(np.isfinite(S0) & (S0 > 0))
+    print(f"  Valid DFSAR pixels (S0 > 0): {valid_count:,}")
     if valid_count == 0:
-        print("\n  [WARNING] DFSAR Stokes bands contain no valid overlapping pixels in the target DEM tile.")
-        print("  Proceeding with empty radar data as per constraints (no synthesized data).")
+        print("\n" + "!" * 70)
+        print("  [STEP 3] *** DFSAR DATA IS EMPTY — ZERO VALID SAR PIXELS ***")
+        print("  Everything downstream (ice mask, volume, landing scorer) will be zero.")
+        print("  ROOT CAUSE: DFSAR swath does not intersect the LOLA DEM tile footprint.")
+        print("  → Run 01_data_ingestion.py first to see the footprint comparison.")
+        print("  → Re-download the correct PRADAN granule covering one of:")
+        print("      Faustini, Haworth, Shoemaker craters  (Sinha et al. 2026 npj)")
+        print("  Proceeding with empty radar data (will not synthesize values).")
+        print("!" * 70 + "\n")
 
     # ── Lee Speckle Filter ────────────────────────────────────────────────────
     print("\n[2/5] Applying Lee speckle filter (5×5 window)...")

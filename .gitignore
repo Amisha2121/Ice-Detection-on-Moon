@@ -51,6 +51,11 @@ Thumbs.db
 desktop.ini
 
 # ── Scratch / temp ────────────────────────────────────────────────────────────
-scratch/
 apply_appjs_fixes.py
-walkthrough.md
+apply_fixes.py
+scratch_test_gcp.py
+check_env.py
+out.log
+regional_test.png
+test_usgs.jpg
+moon_global.png

@@ -141,7 +141,22 @@ async function initMap() {
   ];
 
   overlayDefs.forEach(def => {
-    const layer = L.imageOverlay(CFG.overlayDir + def.file, shkImgBounds, {
+    // Test if the overlay PNG actually exists before adding (avoids silent blank layers)
+    const imgUrl = CFG.overlayDir + def.file;
+    const testImg = new Image();
+    testImg.onerror = () => {
+      const cb = document.getElementById(`layer-${def.id}`);
+      if (cb) {
+        cb.disabled = true;
+        cb.title = 'Overlay PNG not found — run generate_map_overlays.py';
+        const label = cb.parentElement;
+        if (label) label.style.opacity = '0.45';
+      }
+      console.info(`Overlay missing (expected for repo clone): ${def.file}`);
+    };
+    testImg.src = imgUrl;
+
+    const layer = L.imageOverlay(imgUrl, shkImgBounds, {
       opacity:     def.opacity,
       interactive: false,
       zIndex:      def.zIndex,
@@ -310,9 +325,13 @@ async function loadLandingSites() {
     document.getElementById('landing-table').innerHTML = cards.join('') ||
       '<div style="font-size:0.72rem;color:var(--text-muted);padding:8px">No landing sites yet.</div>';
   } catch (e) {
-    console.warn('Landing sites:', e.message);
+    const isNetwork = e.message && (e.message.includes('404') || e.message.includes('fetch') || e.message.includes('JSON'));
+    const msg = isNetwork
+      ? 'Data not found — run <code>python src/run_pipeline.py</code> then <code>python src/export_for_dashboard.py</code>'
+      : 'Run pipeline step 5.';
+    console.warn('Landing sites fetch error:', e.message);
     document.getElementById('landing-table').innerHTML =
-      '<div style="font-size:0.72rem;color:var(--text-muted);padding:8px">Run pipeline step 5.</div>';
+      `<div style="font-size:0.72rem;color:var(--text-muted);padding:8px">${msg}</div>`;
   }
 }
 

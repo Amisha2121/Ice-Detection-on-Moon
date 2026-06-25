@@ -173,11 +173,14 @@ async function initMap() {
     const GLOBAL_LAYER_MAX_ZOOM = -2;
     const updateGlobalLayerOpacity = () => {
       const z = STATE.map.getZoom();
+      console.log(`[Map Zoom] Current zoom: ${z.toFixed(2)}, Threshold: ${GLOBAL_LAYER_MAX_ZOOM}`);
       if (z > GLOBAL_LAYER_MAX_ZOOM) {
         // Zoomed in past global layer's native resolution — fade it out
+        console.log('  -> Hiding global context layer (too zoomed in)');
         globalLayer.setOpacity(0);
       } else {
         // Wide view — show context layer
+        console.log('  -> Showing global context layer');
         globalLayer.setOpacity(0.6);
       }
     };

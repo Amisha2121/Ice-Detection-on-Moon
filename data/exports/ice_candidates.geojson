@@ -1,4 +1,10 @@
 {
   "type": "FeatureCollection",
+  "data_quality": {
+    "synthetic": false,
+    "polarimetry_source": "unknown",
+    "cpr_dop_detection_valid": true,
+    "limitation_message": null
+  },
   "features": []
 }

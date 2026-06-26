@@ -120,8 +120,9 @@ async function initMap() {
 
   STATE.map = L.map('map', {
     crs:              L.CRS.Simple,
-    minZoom:          -10,
+    minZoom:          -2,     // Restrict zoom-out to keep map visible
     maxZoom:          5,
+    zoom:             -1,     // Set initial zoom level
     zoomControl:      true,
     attributionControl: false,
   });
@@ -220,8 +221,8 @@ async function initMap() {
   // ── Named toggleable overlays ────────────────────────────────────────────
   const overlayDefs = [
     { id: 'psr',    file: 'psr_overlay.png',      opacity: 0.45, zIndex: 10 },
-    { id: 'cpr',    file: 'cpr_overlay.png',      opacity: 0.55, zIndex: 11 },
-    { id: 'ice',    file: 'ice_prob_overlay.png', opacity: 0.60, zIndex: 12 },
+    { id: 'cpr',    file: 'cpr_overlay.png',      opacity: 0.75, zIndex: 11 },  // Increased for visibility
+    { id: 'ice',    file: 'ice_prob_overlay.png', opacity: 0.85, zIndex: 12 },
     { id: 'hazard', file: 'hazard_overlay.png',   opacity: 0.40, zIndex: 13 },
   ];
 

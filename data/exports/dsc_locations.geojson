@@ -1,4 +1,119 @@
 {
   "type": "FeatureCollection",
-  "features": []
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -153.18948637400274,
+          -89.62859897818619
+        ]
+      },
+      "properties": {
+        "region_id": 8,
+        "area_px": 5631,
+        "area_km2": 0.1408,
+        "mean_elevation_m": 1285.0,
+        "min_elevation_m": 1257.0,
+        "lat": -89.628599,
+        "lon": -153.189486
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -159.0453529162911,
+          -89.61595425245248
+        ]
+      },
+      "properties": {
+        "region_id": 11,
+        "area_px": 4840,
+        "area_km2": 0.121,
+        "mean_elevation_m": 1152.3,
+        "min_elevation_m": 1127.2,
+        "lat": -89.615954,
+        "lon": -159.045353
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -169.8642407441927,
+          -89.63373547817466
+        ]
+      },
+      "properties": {
+        "region_id": 12,
+        "area_px": 2188,
+        "area_km2": 0.0547,
+        "mean_elevation_m": 1454.3,
+        "min_elevation_m": 1438.1,
+        "lat": -89.633735,
+        "lon": -169.864241
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -155.03547282038625,
+          -89.65275454785188
+        ]
+      },
+      "properties": {
+        "region_id": 5,
+        "area_px": 2097,
+        "area_km2": 0.0524,
+        "mean_elevation_m": 1383.6,
+        "min_elevation_m": 1367.6,
+        "lat": -89.652755,
+        "lon": -155.035473
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -160.5387727716472,
+          -89.53743122312416
+        ]
+      },
+      "properties": {
+        "region_id": 18,
+        "area_px": 1198,
+        "area_km2": 0.03,
+        "mean_elevation_m": 1211.1,
+        "min_elevation_m": 1186.6,
+        "lat": -89.537431,
+        "lon": -160.538773
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -167.92643082845137,
+          -89.65574079053742
+        ]
+      },
+      "properties": {
+        "region_id": 9,
+        "area_px": 790,
+        "area_km2": 0.0198,
+        "mean_elevation_m": 1499.0,
+        "min_elevation_m": 1486.0,
+        "lat": -89.655741,
+        "lon": -167.926431
+      }
+    }
+  ]
 }

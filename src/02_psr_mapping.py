@@ -105,11 +105,11 @@ def run_psr_mapping(n_sun_positions: int = 100) -> dict:
     # Export DSC centroids as GeoJSON with lat/lon
     from utils.geo_utils import pixel_to_latlon
     
-    # Filter DSCs: area >= 0.2 km² and depth >= 20m, top 8 by area (Issue 3)
+    # Filter DSCs: area >= 0.01 km² and depth >= 10m, top 10 by area
     filtered_dsc = [s for s in dsc_stats if 
-        (s["area_px"] * (pixel_size_m ** 2) / 1e6 >= 0.20) and 
-        (s["mean_elevation_m"] - s["min_elevation_m"] >= 20)]
-    filtered_dsc = sorted(filtered_dsc, key=lambda x: x["area_px"], reverse=True)[:8]
+        (s["area_px"] * (pixel_size_m ** 2) / 1e6 >= 0.01) and 
+        (s["mean_elevation_m"] - s["min_elevation_m"] >= 10)]
+    filtered_dsc = sorted(filtered_dsc, key=lambda x: x["area_px"], reverse=True)[:10]
 
     geojson_features = []
     for s in filtered_dsc:

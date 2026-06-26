@@ -126,17 +126,55 @@ save_png(rgb_s, alpha_s, os.path.join(OUT_DIR, "slope_overlay.png"))
 # ── Layer 4: Ice probability ──────────────────────────────────────────────────
 print("Generating ice probability overlay …")
 ice_p, *_ = load_band(os.path.join(PROC, "ice_probability.tif"))
-rgb_ip  = apply_colormap(norm(ice_p, 0, 1), TURBO)
-# Only show pixels with ice_prob > 0.1 (transparent elsewhere)
-alpha_ip = np.where(np.nan_to_num(ice_p) > 0.1,
-                    (np.nan_to_num(ice_p) * 230).astype(np.uint8), 0)
+
+# Make ice pixels HIGHLY VISIBLE with aggressive dilation
+ice_mask = np.nan_to_num(ice_p) > 0.3
+
+# Create THREE separate layers with different dilation levels for maximum visibility
+from scipy import ndimage
+ice_core = ice_mask.copy()  # Original pixels
+ice_dilated_medium = ndimage.binary_dilation(ice_mask, iterations=5)  # 5× bigger
+ice_dilated_large = ndimage.binary_dilation(ice_mask, iterations=10)  # 10× bigger (glow)
+
+# Create RGB with glowing effect
+rgb_ip = np.zeros((*ice_p.shape, 3), dtype=np.uint8)
+
+# Layer 1: Large glow (cyan, semi-transparent)
+rgb_ip[ice_dilated_large] = [100, 255, 255]
+
+# Layer 2: Medium halo (bright cyan)
+rgb_ip[ice_dilated_medium] = [0, 255, 255]
+
+# Layer 3: Core pixels (bright magenta - highest priority)
+rgb_ip[ice_core] = [255, 0, 255]
+
+# Create alpha channel with falloff
+alpha_ip = np.zeros(ice_p.shape, dtype=np.uint8)
+alpha_ip[ice_dilated_large] = 120  # Glow is semi-transparent
+alpha_ip[ice_dilated_medium] = 200  # Medium is more opaque
+alpha_ip[ice_core] = 255  # Core is fully opaque
+
 save_png(rgb_ip, alpha_ip, os.path.join(OUT_DIR, "ice_prob_overlay.png"))
 
 # ── Layer 5: CPR map ──────────────────────────────────────────────────────────
 print("Generating CPR overlay …")
 cpr, *_ = load_band(os.path.join(PROC, "cpr_map.tif"))
-rgb_cpr  = apply_colormap(norm(cpr, 0.3, 1.5), TURBO)
-alpha_cpr = np.where(np.isnan(cpr), 0, 180).astype(np.uint8)
+
+# Use better normalization range based on data percentiles (0.3 to 3.0 covers 98% of data)
+# CPR > 1.0 is interesting (potential ice indicator)
+cpr_normalized = norm(cpr, 0.3, 3.0)
+rgb_cpr = apply_colormap(cpr_normalized, TURBO)
+
+# Only show where CPR data exists and is meaningful
+# Make high CPR values (>1.0) more opaque as they're ice indicators
+cpr_valid = np.isfinite(cpr)
+alpha_cpr = np.zeros(cpr.shape, dtype=np.uint8)
+alpha_cpr[cpr_valid] = 140  # Base opacity for valid CPR
+
+# Boost opacity for high CPR values (potential ice)
+high_cpr = np.nan_to_num(cpr) > 1.0
+alpha_cpr[high_cpr] = 220  # Higher opacity for ice signatures
+
 save_png(rgb_cpr, alpha_cpr, os.path.join(OUT_DIR, "cpr_overlay.png"))
 
 # ── Layer 6: Hazard score ─────────────────────────────────────────────────────

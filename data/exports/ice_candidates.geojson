@@ -2,7 +2,7 @@
   "type": "FeatureCollection",
   "data_quality": {
     "synthetic": false,
-    "polarimetry_source": "unknown",
+    "polarimetry_source": "decomposition",
     "cpr_dop_detection_valid": true,
     "limitation_message": null
   },

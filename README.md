@@ -1,18 +1,21 @@
 # Lunar South Pole Ice Detection Pipeline
 ## Bharatiya Antariksh Hackathon 2026 — Challenge #8
 
-> **Target**: Shackleton Crater (89.9°S) · **Data**: Chandrayaan-2 DFSAR + OHRC + LOLA DEM
+> **Target**: Entire South Pole (85-90°S) · **Data**: Chandrayaan-2 DFSAR + OHRC + TMC-2 DTM  
+> **Status**: Expanding from Shackleton (16×16 km) to regional coverage (500+ km diameter)
 
 ---
 
 ## Quick Start
 
 ### 1. Download Real Data
-| Data | Portal | Save to |
-|---|---|---|
-| DFSAR SRI (CP mode) | [pradan.issdc.gov.in/ch2](https://pradan.issdc.gov.in/ch2/) → SAR | `data/raw/dfsar/` |
-| OHRC Calibrated | [pradan.issdc.gov.in/ch2](https://pradan.issdc.gov.in/ch2/) → OHRC | `data/raw/ohrc/` |
-| LOLA 5m South Pole DEM | [pgda.gsfc.nasa.gov/products/78](https://pgda.gsfc.nasa.gov/products/78) | `data/raw/lola/` |
+| Data | Portal | Save to | Notes |
+|---|---|---|---|
+| **TMC-2 DTM** (south pole DEM) | [pradan.issdc.gov.in/ch2](https://pradan.issdc.gov.in/ch2/) → TMC | `data/raw/tmc/` | **REQUIRED** for regional processing |
+| DFSAR SRI (CP mode) | [pradan.issdc.gov.in/ch2](https://pradan.issdc.gov.in/ch2/) → SAR | `data/raw/dfsar/` | ✅ 13 products already downloaded |
+| OHRC Calibrated | [pradan.issdc.gov.in/ch2](https://pradan.issdc.gov.in/ch2/) → OHRC | `data/raw/ohrc/` | Optional (for optical context) |
+
+**Important**: Download TMC-2 DTM tiles covering -90° to -85° latitude (entire south pole). PRADAN limits searches to 5°×5° at a time, so you'll need multiple queries.
 
 ### 2. Set Up Environment
 ```bash
@@ -23,13 +26,20 @@ conda activate lunar_ice
 pip install opencv-python scikit-image plotly folium networkx tqdm
 ```
 
-### 3. Run the Pipeline
+### 3. Prepare South Pole DEM
 ```bash
-# Full pipeline (Steps 1–7)
-python src/run_pipeline.py
+# Mosaic TMC-2 DTM tiles into single south pole DEM
+python mosaic_tmc_dtm.py
+# Output: data/raw/tmc/south_pole_dem_20m.tif
+```
 
-# Fast preview (20 solar positions for PSR — much quicker)
-python src/run_pipeline.py --psr_positions 20
+### 4. Run the Pipeline
+```bash
+# Full regional pipeline (500+ km coverage, 20m resolution)
+python src/run_pipeline.py --resolution 20 --psr_positions 36
+
+# Fast preview (Shackleton area only, 5m resolution)
+python src/run_pipeline.py --resolution 5 --psr_positions 20
 
 # Individual steps
 python src/01_data_ingestion.py
@@ -41,7 +51,7 @@ python src/06_rover_traverse.py
 python src/07_ice_volume_estimation.py
 ```
 
-### 4. Launch Dashboard
+### 5. Launch Dashboard
 ```bash
 # Copy outputs to dashboard/data/
 python src/export_for_dashboard.py

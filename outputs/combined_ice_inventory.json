@@ -1,0 +1,40 @@
+{
+  "phase1": {
+    "name": "Phase 1: Shackleton Crater",
+    "ice_pixels": 0,
+    "area_km2": 0.0,
+    "resolution_m": 5,
+    "coverage_km2": 256,
+    "cpr_mean": null,
+    "cpr_median": null,
+    "dop_mean": null,
+    "dop_median": null
+  },
+  "phase2": {
+    "name": "Phase 2: Regional South Pole",
+    "ice_pixels": 54558,
+    "area_km2": 34.09875,
+    "resolution_m": 25.0,
+    "coverage_km2": 97850.11125,
+    "cpr_mean": 1.1774042844772339,
+    "cpr_median": 1.1800671815872192,
+    "cpr_min": 1.0004808902740479,
+    "cpr_max": 1.2979557514190674,
+    "dop_mean": 0.09957139194011688,
+    "dop_median": 0.10325906425714493,
+    "dop_min": 0.01636122725903988,
+    "dop_max": 0.12999995052814484
+  },
+  "combined": {
+    "total_ice_pixels": 54558,
+    "total_ice_area_km2": 34.09875,
+    "total_coverage_km2": 98106.11125,
+    "ice_fraction_percent": 0.03475700908489531,
+    "scaling_factor": 1474.5405405405406
+  },
+  "comparison": {
+    "resolution": "Phase 1: 5m, Phase 2: 25m",
+    "coverage": "Phase 1: 256 km\u00b2, Phase 2: 97850 km\u00b2",
+    "ice_detection_increase": "1474.5x"
+  }
+}

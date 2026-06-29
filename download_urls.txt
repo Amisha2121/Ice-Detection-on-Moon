@@ -1,0 +1,302 @@
+TMC-2 DTM DOWNLOAD CHECKLIST
+================================================================================
+
+PRADAN URL: https://pradan.issdc.gov.in/ch2/protected/browse.xhtml
+
+FIXED FILTERS FOR ALL SEARCHES:
+  - Instrument: TMC or TMC-2
+  - Level: Level 3 or Level 4
+  - Product Type: DTM/DEM
+  - Latitude: -90 to -85
+
+LONGITUDE RANGES (change for each search):
+================================================================================
+
+[ ] Search   1: Lat  -90° to -85°, Lon -180° to -175°
+    Longitude: -180° to -175°
+    Download to: data/raw/tmc/
+
+[ ] Search   2: Lat  -90° to -85°, Lon -175° to -170°
+    Longitude: -175° to -170°
+    Download to: data/raw/tmc/
+
+[ ] Search   3: Lat  -90° to -85°, Lon -170° to -165°
+    Longitude: -170° to -165°
+    Download to: data/raw/tmc/
+
+[ ] Search   4: Lat  -90° to -85°, Lon -165° to -160°
+    Longitude: -165° to -160°
+    Download to: data/raw/tmc/
+
+[ ] Search   5: Lat  -90° to -85°, Lon -160° to -155°
+    Longitude: -160° to -155°
+    Download to: data/raw/tmc/
+
+[ ] Search   6: Lat  -90° to -85°, Lon -155° to -150°
+    Longitude: -155° to -150°
+    Download to: data/raw/tmc/
+
+[ ] Search   7: Lat  -90° to -85°, Lon -150° to -145°
+    Longitude: -150° to -145°
+    Download to: data/raw/tmc/
+
+[ ] Search   8: Lat  -90° to -85°, Lon -145° to -140°
+    Longitude: -145° to -140°
+    Download to: data/raw/tmc/
+
+[ ] Search   9: Lat  -90° to -85°, Lon -140° to -135°
+    Longitude: -140° to -135°
+    Download to: data/raw/tmc/
+
+[ ] Search  10: Lat  -90° to -85°, Lon -135° to -130°
+    Longitude: -135° to -130°
+    Download to: data/raw/tmc/
+
+[ ] Search  11: Lat  -90° to -85°, Lon -130° to -125°
+    Longitude: -130° to -125°
+    Download to: data/raw/tmc/
+
+[ ] Search  12: Lat  -90° to -85°, Lon -125° to -120°
+    Longitude: -125° to -120°
+    Download to: data/raw/tmc/
+
+[ ] Search  13: Lat  -90° to -85°, Lon -120° to -115°
+    Longitude: -120° to -115°
+    Download to: data/raw/tmc/
+
+[ ] Search  14: Lat  -90° to -85°, Lon -115° to -110°
+    Longitude: -115° to -110°
+    Download to: data/raw/tmc/
+
+[ ] Search  15: Lat  -90° to -85°, Lon -110° to -105°
+    Longitude: -110° to -105°
+    Download to: data/raw/tmc/
+
+[ ] Search  16: Lat  -90° to -85°, Lon -105° to -100°
+    Longitude: -105° to -100°
+    Download to: data/raw/tmc/
+
+[ ] Search  17: Lat  -90° to -85°, Lon -100° to  -95°
+    Longitude: -100° to -95°
+    Download to: data/raw/tmc/
+
+[ ] Search  18: Lat  -90° to -85°, Lon  -95° to  -90°
+    Longitude: -95° to -90°
+    Download to: data/raw/tmc/
+
+[ ] Search  19: Lat  -90° to -85°, Lon  -90° to  -85°
+    Longitude: -90° to -85°
+    Download to: data/raw/tmc/
+
+[ ] Search  20: Lat  -90° to -85°, Lon  -85° to  -80°
+    Longitude: -85° to -80°
+    Download to: data/raw/tmc/
+
+[ ] Search  21: Lat  -90° to -85°, Lon  -80° to  -75°
+    Longitude: -80° to -75°
+    Download to: data/raw/tmc/
+
+[ ] Search  22: Lat  -90° to -85°, Lon  -75° to  -70°
+    Longitude: -75° to -70°
+    Download to: data/raw/tmc/
+
+[ ] Search  23: Lat  -90° to -85°, Lon  -70° to  -65°
+    Longitude: -70° to -65°
+    Download to: data/raw/tmc/
+
+[ ] Search  24: Lat  -90° to -85°, Lon  -65° to  -60°
+    Longitude: -65° to -60°
+    Download to: data/raw/tmc/
+
+[ ] Search  25: Lat  -90° to -85°, Lon  -60° to  -55°
+    Longitude: -60° to -55°
+    Download to: data/raw/tmc/
+
+[ ] Search  26: Lat  -90° to -85°, Lon  -55° to  -50°
+    Longitude: -55° to -50°
+    Download to: data/raw/tmc/
+
+[ ] Search  27: Lat  -90° to -85°, Lon  -50° to  -45°
+    Longitude: -50° to -45°
+    Download to: data/raw/tmc/
+
+[ ] Search  28: Lat  -90° to -85°, Lon  -45° to  -40°
+    Longitude: -45° to -40°
+    Download to: data/raw/tmc/
+
+[ ] Search  29: Lat  -90° to -85°, Lon  -40° to  -35°
+    Longitude: -40° to -35°
+    Download to: data/raw/tmc/
+
+[ ] Search  30: Lat  -90° to -85°, Lon  -35° to  -30°
+    Longitude: -35° to -30°
+    Download to: data/raw/tmc/
+
+[ ] Search  31: Lat  -90° to -85°, Lon  -30° to  -25°
+    Longitude: -30° to -25°
+    Download to: data/raw/tmc/
+
+[ ] Search  32: Lat  -90° to -85°, Lon  -25° to  -20°
+    Longitude: -25° to -20°
+    Download to: data/raw/tmc/
+
+[ ] Search  33: Lat  -90° to -85°, Lon  -20° to  -15°
+    Longitude: -20° to -15°
+    Download to: data/raw/tmc/
+
+[ ] Search  34: Lat  -90° to -85°, Lon  -15° to  -10°
+    Longitude: -15° to -10°
+    Download to: data/raw/tmc/
+
+[ ] Search  35: Lat  -90° to -85°, Lon  -10° to   -5°
+    Longitude: -10° to -5°
+    Download to: data/raw/tmc/
+
+[ ] Search  36: Lat  -90° to -85°, Lon   -5° to    0°
+    Longitude: -5° to 0°
+    Download to: data/raw/tmc/
+
+[ ] Search  37: Lat  -90° to -85°, Lon    0° to    5°
+    Longitude: 0° to 5°
+    Download to: data/raw/tmc/
+
+[ ] Search  38: Lat  -90° to -85°, Lon    5° to   10°
+    Longitude: 5° to 10°
+    Download to: data/raw/tmc/
+
+[ ] Search  39: Lat  -90° to -85°, Lon   10° to   15°
+    Longitude: 10° to 15°
+    Download to: data/raw/tmc/
+
+[ ] Search  40: Lat  -90° to -85°, Lon   15° to   20°
+    Longitude: 15° to 20°
+    Download to: data/raw/tmc/
+
+[ ] Search  41: Lat  -90° to -85°, Lon   20° to   25°
+    Longitude: 20° to 25°
+    Download to: data/raw/tmc/
+
+[ ] Search  42: Lat  -90° to -85°, Lon   25° to   30°
+    Longitude: 25° to 30°
+    Download to: data/raw/tmc/
+
+[ ] Search  43: Lat  -90° to -85°, Lon   30° to   35°
+    Longitude: 30° to 35°
+    Download to: data/raw/tmc/
+
+[ ] Search  44: Lat  -90° to -85°, Lon   35° to   40°
+    Longitude: 35° to 40°
+    Download to: data/raw/tmc/
+
+[ ] Search  45: Lat  -90° to -85°, Lon   40° to   45°
+    Longitude: 40° to 45°
+    Download to: data/raw/tmc/
+
+[ ] Search  46: Lat  -90° to -85°, Lon   45° to   50°
+    Longitude: 45° to 50°
+    Download to: data/raw/tmc/
+
+[ ] Search  47: Lat  -90° to -85°, Lon   50° to   55°
+    Longitude: 50° to 55°
+    Download to: data/raw/tmc/
+
+[ ] Search  48: Lat  -90° to -85°, Lon   55° to   60°
+    Longitude: 55° to 60°
+    Download to: data/raw/tmc/
+
+[ ] Search  49: Lat  -90° to -85°, Lon   60° to   65°
+    Longitude: 60° to 65°
+    Download to: data/raw/tmc/
+
+[ ] Search  50: Lat  -90° to -85°, Lon   65° to   70°
+    Longitude: 65° to 70°
+    Download to: data/raw/tmc/
+
+[ ] Search  51: Lat  -90° to -85°, Lon   70° to   75°
+    Longitude: 70° to 75°
+    Download to: data/raw/tmc/
+
+[ ] Search  52: Lat  -90° to -85°, Lon   75° to   80°
+    Longitude: 75° to 80°
+    Download to: data/raw/tmc/
+
+[ ] Search  53: Lat  -90° to -85°, Lon   80° to   85°
+    Longitude: 80° to 85°
+    Download to: data/raw/tmc/
+
+[ ] Search  54: Lat  -90° to -85°, Lon   85° to   90°
+    Longitude: 85° to 90°
+    Download to: data/raw/tmc/
+
+[ ] Search  55: Lat  -90° to -85°, Lon   90° to   95°
+    Longitude: 90° to 95°
+    Download to: data/raw/tmc/
+
+[ ] Search  56: Lat  -90° to -85°, Lon   95° to  100°
+    Longitude: 95° to 100°
+    Download to: data/raw/tmc/
+
+[ ] Search  57: Lat  -90° to -85°, Lon  100° to  105°
+    Longitude: 100° to 105°
+    Download to: data/raw/tmc/
+
+[ ] Search  58: Lat  -90° to -85°, Lon  105° to  110°
+    Longitude: 105° to 110°
+    Download to: data/raw/tmc/
+
+[ ] Search  59: Lat  -90° to -85°, Lon  110° to  115°
+    Longitude: 110° to 115°
+    Download to: data/raw/tmc/
+
+[ ] Search  60: Lat  -90° to -85°, Lon  115° to  120°
+    Longitude: 115° to 120°
+    Download to: data/raw/tmc/
+
+[ ] Search  61: Lat  -90° to -85°, Lon  120° to  125°
+    Longitude: 120° to 125°
+    Download to: data/raw/tmc/
+
+[ ] Search  62: Lat  -90° to -85°, Lon  125° to  130°
+    Longitude: 125° to 130°
+    Download to: data/raw/tmc/
+
+[ ] Search  63: Lat  -90° to -85°, Lon  130° to  135°
+    Longitude: 130° to 135°
+    Download to: data/raw/tmc/
+
+[ ] Search  64: Lat  -90° to -85°, Lon  135° to  140°
+    Longitude: 135° to 140°
+    Download to: data/raw/tmc/
+
+[ ] Search  65: Lat  -90° to -85°, Lon  140° to  145°
+    Longitude: 140° to 145°
+    Download to: data/raw/tmc/
+
+[ ] Search  66: Lat  -90° to -85°, Lon  145° to  150°
+    Longitude: 145° to 150°
+    Download to: data/raw/tmc/
+
+[ ] Search  67: Lat  -90° to -85°, Lon  150° to  155°
+    Longitude: 150° to 155°
+    Download to: data/raw/tmc/
+
+[ ] Search  68: Lat  -90° to -85°, Lon  155° to  160°
+    Longitude: 155° to 160°
+    Download to: data/raw/tmc/
+
+[ ] Search  69: Lat  -90° to -85°, Lon  160° to  165°
+    Longitude: 160° to 165°
+    Download to: data/raw/tmc/
+
+[ ] Search  70: Lat  -90° to -85°, Lon  165° to  170°
+    Longitude: 165° to 170°
+    Download to: data/raw/tmc/
+
+[ ] Search  71: Lat  -90° to -85°, Lon  170° to  175°
+    Longitude: 170° to 175°
+    Download to: data/raw/tmc/
+
+[ ] Search  72: Lat  -90° to -85°, Lon  175° to  180°
+    Longitude: 175° to 180°
+    Download to: data/raw/tmc/
+

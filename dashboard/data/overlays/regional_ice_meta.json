@@ -1,0 +1,15 @@
+{
+  "bounds_m": {
+    "west": -159351.0785,
+    "east": 160498.9215,
+    "south": -156815.2697,
+    "north": 149109.7303
+  },
+  "shape": [
+    12237,
+    12794
+  ],
+  "crs": "PROJCS[\"Moon_2000_South_Pole_Stereographic\",GEOGCS[\"GCS_Moon_2000\",DATUM[\"D_Moon_2000\",SPHEROID[\"Moon_2000_IAU_IAG\",1737400,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",-90],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",NORTH],AXIS[\"Northing\",NORTH],AUTHORITY[\"ESRI\",\"103878\"]]",
+  "ice_pixels": 54558,
+  "resolution_m": 25
+}

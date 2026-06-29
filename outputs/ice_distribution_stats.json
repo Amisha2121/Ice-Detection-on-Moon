@@ -1,0 +1,13 @@
+{
+  "total_ice_pixels": 54558,
+  "ice_area_km2": 34.09875,
+  "coverage_km2": 97850.11125,
+  "ice_fraction_percent": 0.034847941984327585,
+  "resolution_m": 25,
+  "bounds_m": {
+    "west": -159351.0785,
+    "east": 160498.9215,
+    "south": -156815.2697,
+    "north": 149109.7303
+  }
+}

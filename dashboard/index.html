@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 
 <body>
@@ -30,7 +30,7 @@
       </div>
       <div>
         <h1 class="app-title">LunarIce<span class="app-subtitle-inline"> Explorer</span></h1>
-        <p class="app-tagline">Chandrayaan-2 DFSAR + OHRC · Shackleton Crater · 89.9°S</p>
+        <p class="app-tagline">Chandrayaan-2 DFSAR Regional Ice Detection · Lunar South Pole · 89.9°S</p>
       </div>
     </div>
 
@@ -93,6 +93,12 @@
             DSC Targets
             <span class="layer-info">Doubly Shadowed Craters</span>
           </label>
+          <label class="layer-item active" id="lbl-southpole">
+            <input type="checkbox" id="layer-southpole" checked />
+            <span class="layer-swatch" style="background:#50dcf0"></span>
+            South Pole Ice
+            <span class="layer-info">Regional Detection · 54,558 pixels · 34 km²</span>
+          </label>
         </div>
       </section>
 
@@ -137,9 +143,11 @@
     <main id="map-container">
       <div id="map"></div>
       <div id="map-coords">📍 –</div>
-      <div id="scale-bar"></div>
-      <button id="btn-zoom-aoi" class="zoom-aoi-btn" title="Zoom to 16×16 km analysis area">
-        🎯 Zoom to AOI
+      <button id="btn-zoom-aoi" class="zoom-aoi-btn" title="Zoom to Shackleton 16×16 km region">
+        🔍 Shackleton
+      </button>
+      <button id="btn-zoom-southpole" class="zoom-aoi-btn" title="Reset to full south pole view" style="top: 60px;">
+        🌙 Full Region
       </button>
     </main>
 
@@ -213,6 +221,6 @@
   <!-- Plotly JS -->
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <!-- App -->
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=104"></script>
 </body>
 </html>

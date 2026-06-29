@@ -1,0 +1,12 @@
+{
+  "bounds_m": {
+    "west": -200000.0,
+    "south": -200000.0,
+    "east": 200000.0,
+    "north": 200000.0
+  },
+  "size": 4096,
+  "resolution_m": 97.65625,
+  "crs": "ESRI:103878",
+  "crs_name": "Moon_2000_South_Pole_Stereographic"
+}

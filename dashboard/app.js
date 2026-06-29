@@ -115,155 +115,62 @@ async function initMap() {
   console.log('[Init] Loading meta.json...');
   STATE.meta = await fetchJSON(FILES.overlayMeta);
   console.log('[Init] Meta loaded:', STATE.meta);
-  
-  const sz = CFG.regionPx;
 
+  // Create Leaflet map with Simple CRS
+  // Use pixel coordinates directly - 1 unit = 1 km
   STATE.map = L.map('map', {
-    crs:              L.CRS.Simple,
-    minZoom:          -2,     // Restrict zoom-out to keep map visible
-    maxZoom:          5,
-    zoom:             -1,     // Set initial zoom level
-    zoomControl:      true,
+    crs: L.CRS.Simple,
+    minZoom: -2,
+    maxZoom: 4,
+    zoom: -1,
+    zoomControl: true,
     attributionControl: false,
+    maxBoundsViscosity: 1.0
   });
   
   console.log('[Init] Leaflet map created');
 
-  // Define actual geographic/projected bounds for the Shackleton tile
-  const m = STATE.meta.bounds;
-  // Leaflet expects [lat, lng] which maps to [y, x] in L.CRS.Simple
-  const shkImgBounds = [[m.south, m.west], [m.north, m.east]];
-  STATE.aoiBounds = shkImgBounds;  // Store for zoom button
+  // South Pole region bounds in KM
+  const southPoleBounds = [[-200, -200], [200, 200]];
   
-  console.log('[Init] AOI bounds:', shkImgBounds);
-
-  // ── Global context basemap (south polar region) ─────────────────────────
-  // TEMPORARILY DISABLED - causing coordinate mismatch
-  // Will re-enable after fixing the basemap generation
-  /*
-  if (STATE.meta.global_basemap) {
-    const gb = STATE.meta.global_basemap;
-    const globalBounds = [[gb.south, gb.west], [gb.north, gb.east]];
-    
-    const globalLayer = L.imageOverlay(CFG.overlayDir + 'global_basemap.png', globalBounds, {
-      opacity: 0.6,
-      interactive: false,
-      zIndex: 0,
-      className: 'global-context-layer'
-    });
-    globalLayer.addTo(STATE.map);
-    STATE.layers.globalContext = globalLayer;
-    
-    globalLayer.on('load', function() {
-      const img = this.getElement();
-      if (img) img.style.filter = 'brightness(1.4) contrast(1.3)';
-    });
-    
-    const aoiRect = L.rectangle(shkImgBounds, {
-      color: '#ef4444',
-      weight: 3,
-      fillOpacity: 0,
-      dashArray: '8, 4',
-      interactive: false,
-      zIndex: 100,
-    }).addTo(STATE.map);
-    aoiRect.bindTooltip('16×16 km High-Resolution Analysis Area', { 
-      permanent: false, 
-      direction: 'top',
-      className: 'dark-tooltip'
-    });
-    
-    const GLOBAL_LAYER_MAX_ZOOM = -2;
-    const updateGlobalLayerOpacity = () => {
-      const z = STATE.map.getZoom();
-      if (z == null || isNaN(z)) {
-        console.warn('[Map Zoom] Zoom level is undefined or NaN');
-        return;
-      }
-      console.log(`[Map Zoom] Current zoom: ${z.toFixed(2)}, Threshold: ${GLOBAL_LAYER_MAX_ZOOM}`);
-      if (z > GLOBAL_LAYER_MAX_ZOOM) {
-        console.log('  -> Hiding global context layer (too zoomed in)');
-        globalLayer.setOpacity(0);
-      } else {
-        console.log('  -> Showing global context layer');
-        globalLayer.setOpacity(0.6);
-      }
-    };
-    
-    STATE.map.on('zoomend', updateGlobalLayerOpacity);
-    STATE.map.whenReady(() => {
-      console.log('[Map] Map is ready, setting initial zoom opacity');
-      updateGlobalLayerOpacity();
-    });
-    
-    const centerLat = (shkImgBounds[0][0] + shkImgBounds[1][0]) / 2;
-    const centerLng = (shkImgBounds[0][1] + shkImgBounds[1][1]) / 2;
-    const contextRadius = 100000;
-    const contextView = [
-      [centerLat - contextRadius, centerLng - contextRadius],
-      [centerLat + contextRadius, centerLng + contextRadius]
-    ];
-    
-    STATE.map.fitBounds(contextView);
-    STATE.map.setMaxBounds(globalBounds);
-  } else */ {
-    // Just show the AOI without global context
-    STATE.map.fitBounds(shkImgBounds);
-    STATE.map.setMaxBounds(shkImgBounds);
-  }
-  STATE.map.options.maxBoundsViscosity = 1.0;
-
-  // ── Basemap: High-res LOLA DEM hillshade for Shackleton ─────────────────
-  L.imageOverlay(CFG.overlayDir + 'dem_hillshade.png', shkImgBounds, {
-    opacity: 1.0, interactive: false, zIndex: 1,
-  }).addTo(STATE.map);
-
-  // ── Named toggleable overlays ────────────────────────────────────────────
-  const overlayDefs = [
-    { id: 'psr',    file: 'psr_overlay.png',      opacity: 0.45, zIndex: 10 },
-    { id: 'cpr',    file: 'cpr_overlay.png',      opacity: 0.75, zIndex: 11 },  // Increased for visibility
-    { id: 'ice',    file: 'ice_prob_overlay.png', opacity: 0.85, zIndex: 12 },
-    { id: 'hazard', file: 'hazard_overlay.png',   opacity: 0.40, zIndex: 13 },
-  ];
-
-  overlayDefs.forEach(def => {
-    // Test if the overlay PNG actually exists before adding (avoids silent blank layers)
-    const imgUrl = CFG.overlayDir + def.file;
-    const testImg = new Image();
-    testImg.onerror = () => {
-      const cb = document.getElementById(`layer-${def.id}`);
-      if (cb) {
-        cb.disabled = true;
-        cb.title = 'Overlay PNG not found — run generate_map_overlays.py';
-        const label = cb.parentElement;
-        if (label) label.style.opacity = '0.45';
-      }
-      console.info(`Overlay missing (expected for repo clone): ${def.file}`);
-    };
-    testImg.src = imgUrl;
-
-    const layer = L.imageOverlay(imgUrl, shkImgBounds, {
-      opacity:     def.opacity,
-      interactive: false,
-      zIndex:      def.zIndex,
-    });
-    STATE.layers[def.id] = layer;
-
-    const cb = document.getElementById(`layer-${def.id}`);
-    if (cb) {
-      if (cb.checked) layer.addTo(STATE.map);
-      cb.addEventListener('change', () =>
-        cb.checked ? layer.addTo(STATE.map) : STATE.map.removeLayer(layer));
-    }
-  });
-
-  // Coordinate readout (pixel → approx metres)
+  // Add south pole basemap
+  const basemap = L.imageOverlay(
+    CFG.overlayDir + 'south_pole_basemap_proper.png',
+    southPoleBounds,
+    { opacity: 1.0, interactive: false, zIndex: 1 }
+  ).addTo(STATE.map);
+  
+  basemap.on('load', () => console.log('[Init] ✓ Basemap loaded'));
+  
+  // Add ice detection overlay  
+  const iceBounds = [[-156.815, -159.351], [149.110, 160.499]];
+  const iceOverlay = L.imageOverlay(
+    CFG.overlayDir + 'ice_detection_south_pole_bright.png',
+    iceBounds,
+    { opacity: 1.0, interactive: false, zIndex: 2 }
+  ).addTo(STATE.map);
+  
+  iceOverlay.on('load', () => console.log('[Init] ✓ Ice overlay loaded'));
+  
+  STATE.layers.basemap = basemap;
+  STATE.layers.ice = iceOverlay;
+  
+  // Set view to show full region WITHOUT black borders
+  STATE.map.fitBounds(southPoleBounds, { padding: [0, 0] });
+  STATE.map.setMaxBounds(southPoleBounds);
+  
+  // Store bounds for buttons
+  STATE.aoiBounds = [[-15, -9], [1, 7]];  // Shackleton in km
+  
+  // Mouse coordinates
   STATE.map.on('mousemove', e => {
-    const mx = e.latlng.lng;
-    const my = e.latlng.lat;
+    const x = e.latlng.lng;
+    const y = e.latlng.lat;
     document.getElementById('map-coords').textContent =
-      `📍 ${(mx / 1000).toFixed(2)} km E,  ${(my / 1000).toFixed(2)} km N  (SP-stereo)`;
+      `📍 E: ${x.toFixed(1)} km, N: ${y.toFixed(1)} km`;
   });
+  
+  console.log('[Init] ✓ Map initialized');
 }
 
 // ── Layer helpers ─────────────────────────────────────────────────────────────
@@ -759,12 +666,33 @@ async function init() {
   initThresholdControls();
   addLegend();
 
-  // Zoom to AOI button handler
+  // Zoom buttons
   const zoomBtn = document.getElementById('btn-zoom-aoi');
-  if (zoomBtn && STATE.aoiBounds) {
+  if (zoomBtn) {
     zoomBtn.addEventListener('click', () => {
-      STATE.map.fitBounds(STATE.aoiBounds);
-      toast('Zoomed to 16×16 km analysis area', 1500);
+      STATE.map.fitBounds(STATE.aoiBounds, { padding: [20, 20] });
+      toast('Zoomed to Shackleton', 1500);
+    });
+  }
+
+  const zoomSouthPoleBtn = document.getElementById('btn-zoom-southpole');
+  if (zoomSouthPoleBtn) {
+    zoomSouthPoleBtn.addEventListener('click', () => {
+      STATE.map.fitBounds([[-200, -200], [200, 200]], { padding: [0, 0] });
+      toast('Full region', 1500);
+    });
+  }
+  
+  // Ice layer toggle
+  const iceCb = document.getElementById('layer-southpole');
+  if (iceCb && STATE.layers.ice) {
+    iceCb.checked = true;
+    iceCb.addEventListener('change', () => {
+      if (iceCb.checked) {
+        STATE.layers.ice.addTo(STATE.map);
+      } else {
+        STATE.map.removeLayer(STATE.layers.ice);
+      }
     });
   }
 

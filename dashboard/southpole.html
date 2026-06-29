@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>South Pole Ice Detection | Chandrayaan-2 DFSAR</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0e1a;
+      color: #e0e7ff;
+      overflow: hidden;
+    }
+    
+    #container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+    
+    /* Sidebar */
+    #sidebar {
+      width: 300px;
+      background: linear-gradient(180deg, #0f1729 0%, #0a0e1a 100%);
+      border-right: 1px solid #1e3a5f;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    #header {
+      text-align: center;
+      border-bottom: 1px solid #1e3a5f;
+      padding-bottom: 15px;
+    }
+    
+    h1 {
+      font-size: 24px;
+      color: #60a5fa;
+      margin-bottom: 5px;
+    }
+    
+    .subtitle {
+      font-size: 11px;
+      color: #7eb8e8;
+      opacity: 0.8;
+    }
+    
+    .section {
+      background: rgba(30, 58, 95, 0.2);
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(30, 58, 95, 0.3);
+      font-size: 12px;
+    }
+    
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+    
+    .stat-label {
+      color: #94a3b8;
+    }
+    
+    .stat-value {
+      color: #22d3ee;
+      font-weight: 600;
+    }
+    
+    .layer-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(30, 58, 95, 0.15);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .layer-control:hover {
+      background: rgba(30, 58, 95, 0.3);
+    }
+    
+    .layer-control input {
+      cursor: pointer;
+    }
+    
+    .layer-control label {
+      cursor: pointer;
+      flex: 1;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+    
+    .layer-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+      border: 1px solid #1e3a5f;
+    }
+    
+    button {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #1e3a5f;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #1e3a5f 0%, #0f1729 100%);
+      color: #60a5fa;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+    
+    button:hover {
+      background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%);
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    #status {
+      text-align: center;
+      font-size: 12px;
+      padding: 8px;
+      background: rgba(30, 58, 95, 0.2);
+      border-radius: 6px;
+      margin-top: auto;
+    }
+    
+    /* Map container */
+    #map-container {
+      flex: 1;
+      position: relative;
+      background: #000;
+    }
+    
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    
+    #map-coords {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(5, 15, 35, 0.9);
+      border: 1px solid #1e3a5f;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #7eb8e8;
+      font-family: 'Courier New', monospace;
+      z-index: 1000;
+    }
+    
+    /* Leaflet overrides */
+    .leaflet-container {
+      background: #000;
+    }
+    
+    .leaflet-control-zoom {
+      border: 1px solid #1e3a5f !important;
+      background: rgba(5, 15, 35, 0.9) !important;
+    }
+    
+    .leaflet-control-zoom a {
+      background: rgba(30, 58, 95, 0.5) !important;
+      color: #60a5fa !important;
+      border-bottom: 1px solid #1e3a5f !important;
+    }
+    
+    .leaflet-control-zoom a:hover {
+      background: rgba(37, 99, 235, 0.8) !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div id="header">
+        <h1>🌙 South Pole Ice</h1>
+        <div class="subtitle">Chandrayaan-2 DFSAR Regional Detection</div>
+      </div>
+      
+      <!-- Info Section -->
+      <div class="section">
+        <div class="section-title">📊 Detection Summary</div>
+        <div class="stat-row">
+          <span class="stat-label">Ice pixels detected</span>
+          <span class="stat-value" id="ice-count">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Ice coverage area</span>
+          <span class="stat-value" id="ice-area">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Region coverage</span>
+          <span class="stat-value" id="coverage">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Basemap resolution</span>
+          <span class="stat-value" id="resolution-basemap">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Ice resolution</span>
+          <span class="stat-value" id="resolution-ice">—</span>
+        </div>
+      </div>
+      
+      <!-- Layer Controls -->
+      <div class="section">
+        <div class="section-title">🗺️ Map Layers</div>
+        <div class="layer-control">
+          <input type="checkbox" id="layer-ice" checked />
+          <div class="layer-swatch" style="background: linear-gradient(135deg, #50dcf0, #22d3ee);"></div>
+          <label for="layer-ice">Ice Detection (54,558 px)</label>
+        </div>
+      </div>
+      
+      <!-- Zoom Controls -->
+      <div class="section">
+        <div class="section-title">🔍 Navigation</div>
+        <button id="btn-zoom-full">🌍 Full Region (±200 km)</button>
+        <button id="btn-zoom-ice">❄️ Ice Detection Area</button>
+      </div>
+      
+      <div id="status">Initializing...</div>
+    </div>
+    
+    <!-- Map -->
+    <div id="map-container">
+      <div id="map"></div>
+      <div id="map-coords">📍 —</div>
+    </div>
+  </div>
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- App -->
+  <script src="app_southpole.js"></script>
+</body>
+</html>

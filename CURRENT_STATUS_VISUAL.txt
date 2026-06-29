@@ -1,0 +1,159 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                  LUNAR SOUTH POLE ICE DETECTION PROJECT                      ║
+║           Bharatiya Antariksh Hackathon 2026 — Challenge #8                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ CURRENT STATUS: Shackleton Crater (16×16 km) — ✅ COMPLETE                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────┐
+    │   Shackleton    │
+    │   89.9°S, 0°E   │
+    │                 │
+    │   16×16 km      │  ← Currently working
+    │   37 ice pixels │
+    │   3 sites       │
+    │   27.2 km path  │
+    └─────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TARGET STATUS: Entire South Pole (500+ km diameter) — ⏳ READY TO EXECUTE   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+         ┌───────────────────────────────────────┐
+         │                                       │
+         │        ENTIRE SOUTH POLE              │
+         │         85°S - 90°S                   │
+         │                                       │
+         │   ┌─────┐  ┌─────┐  ┌─────┐         │
+         │   │Shkltn│  │Faust│  │Hawrt│         │  ← Need TMC-2 DEM
+         │   └─────┘  └─────┘  └─────┘         │     to unlock
+         │                                       │
+         │   ┌─────┐  ┌─────┐  ┌─────┐         │
+         │   │Shoe-│  │Other│  │Other│         │
+         │   │maker│  │ DSC │  │ DSC │         │
+         │   └─────┘  └─────┘  └─────┘         │
+         │                                       │
+         │      500+ km diameter                 │
+         │      13 DFSAR swaths ready            │
+         │      Multiple DSCs expected           │
+         └───────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+  DATA INVENTORY
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ HAVE (Ready to Use):
+┌────────────────────────────────────────────────────────────────────────┐
+│ • 13 DFSAR Products (compact-pol & full-pol)                           │
+│   - 11 × Compact-Polarimetry (_d_cp_n18)     ✓ Supports CPR/DOP       │
+│   - 2 × Full-Polarimetry (_d_fp_xxx)         ✓ Full Stokes            │
+│   Location: data/raw/dfsar/ (mostly extracted)                         │
+│                                                                         │
+│ • Pipeline Code                                                         │
+│   - Multi-swath mosaicking       ✓ Already implemented                │
+│   - CP → Stokes conversion       ✓ Working                            │
+│   - Ice detection (CPR/DOP)      ✓ Validated                          │
+│   - Landing site selection       ✓ Working                            │
+│   - A* rover traverse            ✓ Working                            │
+│   Location: src/*.py                                                   │
+│                                                                         │
+│ • 368 TMC Image Product IDs                                             │
+│   - For OHRC optical context (optional)                                │
+│   Location: TMC368_Product_IDs.txt                                     │
+└────────────────────────────────────────────────────────────────────────┘
+
+❌ NEED (Blocker):
+┌────────────────────────────────────────────────────────────────────────┐
+│ • TMC-2 DTM (Digital Terrain Model)                                    │
+│   - Coverage: -90° to -85° latitude (entire south pole)                │
+│   - Resolution: 20m sufficient for regional scale                      │
+│   - Source: PRADAN → TMC-2 instrument → Level 3/4 products            │
+│   - Estimate: 36-72 tiles (5°×5° each)                                │
+│   Target: data/raw/tmc/south_pole_dem_20m.tif                         │
+│                                                                         │
+│   ⚠️ Without this DEM:                                                 │
+│      - DFSAR swaths rejected ("no overlap")                            │
+│      - Can only process Shackleton 16×16 km                            │
+│      - Cannot achieve "whole southern pole" objective                  │
+└────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+  EXECUTION PLAN
+═══════════════════════════════════════════════════════════════════════════════
+
+PHASE 1: Get DEM (CRITICAL) ⏰ 1-2 hours
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1. Go to: https://pradan.issdc.gov.in/ch2/protected/browse.xhtml      │
+│                                                                         │
+│ 2. Filters:                                                             │
+│    • Instrument: TMC-2                                                  │
+│    • Level: DTM/DEM (Level 3 or 4)                                     │
+│    • Latitude: -90 to -85                                               │
+│    • Longitude: -180 to 180 (in 5° increments)                        │
+│                                                                         │
+│ 3. Download tiles to: data\raw\tmc\                                    │
+│                                                                         │
+│ 4. Mosaic: python mosaic_tmc_dtm.py                                    │
+│    Output: data/raw/tmc/south_pole_dem_20m.tif                         │
+└────────────────────────────────────────────────────────────────────────┘
+
+PHASE 2: Run Regional Pipeline ⏰ 1-2 hours
+┌────────────────────────────────────────────────────────────────────────┐
+│ python src/run_pipeline.py --resolution 20 --psr_positions 36         │
+│ python src/generate_map_overlays.py                                    │
+│ python src/export_for_dashboard.py                                     │
+│                                                                         │
+│ python -m http.server 8080 --directory dashboard                       │
+│ # Open http://localhost:8080                                           │
+└────────────────────────────────────────────────────────────────────────┘
+
+PHASE 3: Results ✅
+┌────────────────────────────────────────────────────────────────────────┐
+│ Expected Outputs:                                                       │
+│ • Ice detections across entire south pole                              │
+│ • Multiple DSCs in various craters                                     │
+│ • Regional landing site ranking                                        │
+│ • Long-range rover traverses                                           │
+│ • Meaningful ice volume estimates                                      │
+│ • ✅ Satisfies "whole southern pole" requirement                       │
+└────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+  QUICK REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+📁 New Files Created:
+  • SOUTH_POLE_EXPANSION_STATUS.md   — Detailed technical guide
+  • SUMMARY_FOR_USER.md               — Quick summary (read this!)
+  • IMPROVEMENT_PLAN.md               — Updated with regional plan
+  • mosaic_tmc_dtm.py                 — Script to mosaic TMC tiles
+  • CURRENT_STATUS_VISUAL.txt         — This file
+
+🔗 Key Links:
+  • PRADAN Portal: https://pradan.issdc.gov.in/ch2/protected/browse.xhtml
+  • GitHub Repo: https://github.com/Amisha2121/Ice-Detection-on-Moon.git
+  • Dashboard: http://localhost:8080 (when server running)
+
+⏱️ Time Estimate:
+  • Download TMC DTM: 1-2 hours
+  • Mosaic tiles:     30 min
+  • Run pipeline:     1-2 hours
+  • TOTAL:            3-5 hours
+
+🚀 Alternative (if time-limited):
+  Process just 4 major craters instead of full pole → 2-3 hours
+
+
+═══════════════════════════════════════════════════════════════════════════════
+  YOUR PIPELINE IS READY — YOU JUST NEED THE DEM! 🚀
+═══════════════════════════════════════════════════════════════════════════════
+
+Next action: Open PRADAN and start downloading TMC-2 DTM tiles!
+
+Questions? Read: SUMMARY_FOR_USER.md
